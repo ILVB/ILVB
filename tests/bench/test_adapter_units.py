@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 import pytest
 
@@ -30,3 +31,15 @@ def test_worker_env_puts_candidate_code_first() -> None:
     assert env["HF_HUB_OFFLINE"] == "1" and env["PYTHONHASHSEED"] == "0"
     with pytest.raises(ValueError, match="unknown"):
         client.code_dir("nightly")
+
+
+def test_engine_takes_only_cache_dir_from_environment(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from benchmarks.adapters.v010 import Engine
+
+    monkeypatch.setenv("MANGAAR_CACHE_DIR", str(tmp_path))
+    monkeypatch.setenv("MANGAAR_OFFLINE", "1")
+    engine = Engine({"translate.cache": False})
+    assert engine.cfg.runtime.cache_dir == str(tmp_path)
+    assert engine.cfg.runtime.offline is False  # explicit profile settings only

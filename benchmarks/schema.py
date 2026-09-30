@@ -67,6 +67,7 @@ class PredRegion(_Strict):
     vertical: bool = False
     reading_order: int = 0
     text_mask: Rle | None = None
+    erase_mask: Rle | None = None  # pixels the eraser declared it may change
     flags: list[str] = Field(default_factory=list)
 
 

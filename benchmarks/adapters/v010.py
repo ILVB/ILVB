@@ -6,6 +6,7 @@ baseline forever. Stage functions return version-independent `benchmarks.schema`
 
 from __future__ import annotations
 
+import os
 import random
 from pathlib import Path
 from typing import Any
@@ -27,6 +28,7 @@ PROMPT_TO_V010 = {
     "credit": "free_text",
     "sfx": "sfx",
 }
+SOURCE_LANGS = {"ja", "ko", "zh"}  # v0.1.0 users pick "auto" for anything else (e.g. English)
 
 
 class Engine:
@@ -38,7 +40,10 @@ class Engine:
         from manga_ar.pipeline import Pipeline
 
         self.origin = str(Path(manga_ar.__file__).resolve().parent)
-        self.cfg = load_config(overrides=overrides, environ={})
+        # Only the model cache location comes from the environment; every other setting is
+        # explicit so runs are reproducible (MANGAAR_OFFLINE, MANGAAR_DEVICE etc. ignored).
+        environ = {k: os.environ[k] for k in ("MANGAAR_CACHE_DIR",) if k in os.environ}
+        self.cfg = load_config(overrides=overrides, environ=environ)
         self.pipeline = Pipeline(self.cfg, tm_pairs=tm_pairs)
 
     # ------------------------------------------------------------------ helpers
@@ -46,7 +51,9 @@ class Engine:
         random.seed(self.cfg.runtime.seed)
         np.random.seed(self.cfg.runtime.seed % 2**32)
 
-    def _detect(self, rgb: RgbArray, page_id: str, lang: str, stats: dict[str, StageStats]) -> Any:
+    def _detect(
+        self, rgb: RgbArray, page_id: str, lang: str, stats: dict[str, StageStats]
+    ) -> tuple[Any, list[Any], str]:
         from manga_ar.detect.reading_order import assign_reading_order, default_mode
         from manga_ar.detect.tiled import detect_page
         from manga_ar.schemas import PageDocument, RegionType
@@ -58,6 +65,9 @@ class Engine:
             regions = stages.segmenter.segment(rgb, blocks, page_id)
             active = [r for r in regions if r.type != RegionType.SFX]
             sfx = [r for r in regions if r.type == RegionType.SFX]
+            if lang not in SOURCE_LANGS:  # what `--source auto` does in v0.1.0 (one page)
+                found = stages.ocr.detect_language(rgb, active)[0] if active else None
+                lang = found or "ja"
             mode = self.cfg.input.reading_order
             active = (
                 assign_reading_order(active, rgb, default_mode(lang) if mode == "auto" else mode)
@@ -68,7 +78,7 @@ class Engine:
                 r.reading_order = len(active) + k
         doc.regions = [*active, *sfx]
         doc.lang = lang
-        return doc, active
+        return doc, active, lang
 
     @staticmethod
     def _pred(regions: list[Any], height: int, width: int) -> list[PredRegion]:
@@ -76,6 +86,7 @@ class Engine:
         for r in regions:
             b = r.bbox
             mask = r.text_mask.to_full(height, width) if r.text_mask is not None else None
+            erase = r.inpaint_mask.to_full(height, width) if r.inpaint_mask is not None else None
             out.append(
                 PredRegion(
                     region_id=r.id,
@@ -87,6 +98,7 @@ class Engine:
                     vertical=bool(r.vertical),
                     reading_order=int(r.reading_order),
                     text_mask=rle.encode(mask) if mask is not None else None,
+                    erase_mask=rle.encode(erase) if erase is not None else None,
                     flags=sorted(f.value for f in r.flags),
                 )
             )
@@ -96,7 +108,7 @@ class Engine:
     def detect_ocr(self, rgb: RgbArray, page_id: str, lang: str) -> PageResult:
         self._seed()
         stats: dict[str, StageStats] = {}
-        doc, active = self._detect(rgb, page_id, lang, stats)
+        doc, active, lang = self._detect(rgb, page_id, lang, stats)
         with measure(stats, "ocr"):
             self.pipeline._ocr(rgb, active, lang, doc)
         return PageResult(
@@ -111,7 +123,7 @@ class Engine:
     def erase(self, rgb: RgbArray, page_id: str, lang: str) -> tuple[PageResult, RgbArray]:
         self._seed()
         stats: dict[str, StageStats] = {}
-        doc, active = self._detect(rgb, page_id, lang, stats)
+        doc, active, lang = self._detect(rgb, page_id, lang, stats)
         with measure(stats, "ocr"):
             self.pipeline._ocr(rgb, active, lang, doc)
         with measure(stats, "inpaint"):
@@ -221,6 +233,8 @@ class Engine:
         from manga_ar.schemas import BBox, OcrResult, Region, RegionType
 
         self._seed()
+        # v0.1.0 cannot declare other sources; its undetermined-language default is ja.
+        src = gt.lang if gt.lang in SOURCE_LANGS else "ja"
         regions = []
         for g in sorted(gt.regions, key=lambda r: r.reading_order):
             if g.type == "sfx":
@@ -231,13 +245,13 @@ class Engine:
                     type=RegionType(PROMPT_TO_V010[g.type]),
                     bbox=BBox(0, 0, 1, 1),
                     reading_order=g.reading_order,
-                    source_lang=gt.lang,
-                    ocr=OcrResult(engine="gt", text=g.text, lang=gt.lang),
+                    source_lang=src,
+                    ocr=OcrResult(engine="gt", text=g.text, lang=src),
                 )
             )
         stats: dict[str, StageStats] = {}
         with measure(stats, "translate"):
-            self.pipeline.stages.translator.translate_regions(regions, gt.lang)
+            self.pipeline.stages.translator.translate_regions(regions, src)
         texts = {r.id: r.translation.text for r in regions if r.translation is not None}
         return PageResult(
             page_id=gt.page_id,
