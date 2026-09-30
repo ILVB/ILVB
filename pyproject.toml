@@ -78,7 +78,7 @@ Documentation = "https://github.com/ilvb/ilvb/tree/main/docs"
 where = ["src"]
 
 [tool.setuptools.package-data]
-manga_ar = ["py.typed", "data/*.json", "data/*.yaml"]
+manga_ar = ["py.typed", "data/*.json", "data/*.yaml", "assets/fonts/*.ttf", "assets/fonts/SHA256SUMS", "assets/fonts/licenses/*.txt"]
 
 # uv: several OCR packages depend on the GUI build of OpenCV (opencv-python /
 # opencv-contrib-python). Both ship the same `cv2` module as the headless build, and

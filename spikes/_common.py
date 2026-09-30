@@ -12,9 +12,9 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "spikes" / "out"
 CACHE = Path(os.environ.get("MANGAAR_CACHE_DIR", ROOT / ".cache"))
 FONT_FILES = {
-    "ja": CACHE / "fonts/NotoSansJP-Regular.otf",
-    "ko": CACHE / "fonts/NotoSansKR-Regular.otf",
-    "zh": CACHE / "fonts/NotoSansSC-Regular.otf",
+    "ja": CACHE / "models/fonts/NotoSansJP-Regular.otf",
+    "ko": CACHE / "models/fonts/NotoSansKR-Regular.otf",
+    "zh": CACHE / "models/fonts/NotoSansSC-Regular.otf",
 }
 
 

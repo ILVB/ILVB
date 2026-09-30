@@ -17,7 +17,7 @@ by the session's network policy. Implementations for these stay behind interface
 tested with fakes. Live gates are waived (W-xxx entries below) instead of faked.
 
 **D-004 — Arabic fonts are vendored; CJK fixture fonts are downloaded.** Eleven OFL files
-(~4.9 MB) sit in `assets/fonts/` with OFL texts in `assets/fonts/licenses/` and a
+(~4.9 MB) sit in `src/manga_ar/assets/fonts/` (see D-006) with OFL texts in `licenses/` and a
 `SHA256SUMS`. The Noto CJK subsets (~17 MB) are fetched by `scripts/download_assets.py`
 with pinned SHA-256s and never committed.
 
@@ -106,6 +106,35 @@ translation memory (a standard CAT-tool feature: normalised source → Arabic, l
 user JSON/YAML/CSV) is the first provider in the chain when configured. The demo ships a
 TM for its own synthetic sentences. This is a real, user-facing feature and the report
 names the provider used. The pipeline does not special-case the demo.
+
+## Phase 1
+
+**D-006 — Repo layout adaptations.** (a) The vendored fonts live in
+`src/manga_ar/assets/fonts/` instead of a top-level `assets/fonts/`, because the wheel
+must ship them (`manga-arabic demo` and typesetting need them after `pip install`).
+(b) The synthetic page generator lives in `manga_ar/synth.py`, because the `demo`
+subcommand needs it at runtime; `tests/fixtures/synth.py` re-exports it and adds
+corrupted-file builders. (c) `doctor.py` and `resources.py` are small extra modules.
+(d) CJK fixture fonts are registry "models" (`font-cjk-*`), so they get SHA-256
+verification and offline handling from the model manager.
+
+**D-007 — Defaults live in packaged `default.yaml`.** Config dataclasses have no field
+defaults; every key must come from `manga_ar/data/default.yaml`, so no default can hide in
+code. `configs/default.yaml` is a byte-identical copy for readers, enforced by a unit
+test.
+
+**D-008 — Config hash scope.** The hash excludes keys that cannot change output pixels or
+text (device, debug, cache_dir, log level, threads, offline, resume/force) and includes
+the MangaAR version (E19).
+
+**D-009 — Lock file.** `uv lock` resolves 167 packages for Python 3.10–3.12 on all
+platforms. The venv is synced with `uv sync --locked` (all extras except paddle/gpu), and
+all tests run against the locked versions.
+
+**D-010 — Loader policy details.** Images smaller than 16 px on a side (e.g. 1×1) are
+rejected as unusable pages. Pillow's default pixel limit (~179 MP) is the
+decompression-bomb guard. Bad PNG CRCs count as corruption: `strict` raises, `lenient`
+decodes best-effort with a warning.
 
 ## Waivers
 

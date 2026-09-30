@@ -1,0 +1,140 @@
+# MangaAR default configuration.
+#
+# Layering (later wins): these defaults -> preset overlay -> user YAML (--config)
+# -> environment (MANGAAR_CACHE_DIR, MANGAAR_OFFLINE, MANGAAR_DEVICE, and the generic
+# MANGAAR__<section>__<key>=<yaml value>) -> command-line flags.
+# Every key must exist here; unknown keys anywhere are rejected (ConfigError).
+# configs/default.yaml is an identical copy kept for readers (a unit test enforces it).
+
+schema: 1
+
+# fast | balanced | quality  (overlays are defined in manga_ar/config.py: PRESETS)
+preset: balanced
+
+runtime:
+  device: auto            # auto | cpu | cuda | mps  (auto falls back to cpu)
+  offline: false          # true: never touch the network (local models/TM/cache only)
+  debug: false            # write per-page debug artifacts (detections, masks, layers)
+  seed: 1234              # fixed seed for any stochastic step
+  cache_dir: null         # null: $MANGAAR_CACHE_DIR or the platformdirs user cache
+  log_level: INFO         # DEBUG | INFO | WARNING | ERROR
+  num_threads: 0          # 0: library default; >0 caps torch/onnxruntime threads
+
+input:
+  source_lang: auto       # auto | ja | ko | zh
+  reading_order: auto     # auto | manga_rtl | comic_ltr | webtoon_ttb
+  max_pixels: 178956970   # decompression-bomb guard (≈179 MP, Pillow's default)
+  min_side: 16            # smaller images are rejected (1×1 etc.)
+  max_side: 65500         # longest allowed side in pixels
+  truncated: lenient      # strict: error on truncated files; lenient: best effort + warning
+  archive_max_members: 5000
+  archive_max_member_mb: 200
+  archive_max_total_mb: 4096
+
+tiling:
+  enabled: true
+  aspect_trigger: 2.5     # tile when height > aspect_trigger × width ...
+  height_trigger: 4096    # ... or height > height_trigger
+  tile_height: 2048       # maximum tile height
+  overlap: 192            # minimum overlap between consecutive tiles
+
+detect:
+  detector: auto          # auto | classical | rapid | craft | ctd (ctd: GPL-3.0 weights, opt-in)
+  sfx: skip               # skip | translate
+  min_glyph_px: 6         # smallest glyph side considered text
+  max_glyph_frac: 0.12    # largest glyph side as a fraction of the page's shorter side
+  min_region_area: 150    # drop text blocks smaller than this (px²)
+  nms_iou: 0.5
+  bubble_roi_scale: 2.5   # search window around a text block when growing its bubble
+  leak_max_area_ratio: 20.0     # bubble area / text area above this => leak
+  leak_max_page_fraction: 0.35  # bubble area / page area above this => leak
+  leak_min_solidity: 0.75       # convex-hull solidity below this => leak
+  suppress_furigana: true
+
+ocr:
+  engines:                # tried in order; unavailable engines are skipped
+    ja: [manga_ocr, easyocr, rapid, paddle]
+    ko: [easyocr, paddle]
+    zh: [rapid, easyocr, paddle]
+  padding: 0.10           # crop padding as a fraction of the block size
+  min_confidence: 0.35    # below this => LOW_CONFIDENCE and retry with the next engine
+  max_upscale: 3.0        # small crops are upscaled (Lanczos) up to this factor
+  min_crop_px: 32         # crops smaller than this (shorter side) get upscaled
+  preserve_decorations: true
+  verify_multi_engine: false
+  pass_through_latin: true
+
+inpaint:
+  strategy: auto          # auto | solid | telea | ns | lama
+  use_lama: true          # auto strategy may use LaMa for textured backgrounds
+  uniform_std: 6.0        # luminance std-dev (0-255) at/below which a background is uniform
+  gradient_residual_std: 4.0    # std-dev after removing a planar fit: below => smooth gradient
+  dilate_min: 2
+  dilate_max: 8
+  allowed_erode: 2        # erode bubble interior by this many px (keeps outlines/tails)
+  feather_px: 1
+  lama_context: 96        # context padding around the mask for LaMa crops
+  lama_max_side: 1024     # LaMa crops are downscaled to fit this side
+  residual_check: false
+  residual_max_passes: 2
+  erase_untranslated: false
+
+translate:
+  providers: [tm, google, mymemory, libretranslate, local]
+  target: ar
+  tm_file: null           # translation memory (JSON/YAML/CSV: source -> Arabic)
+  glossary_file: null     # glossary (JSON/YAML/CSV: term -> Arabic), placeholder-protected
+  libretranslate_url: null
+  local_model: marian     # marian (opus-mt pivot through English) | m2m100 (direct)
+  proxy: null             # optional user-supplied proxy URL (off by default)
+  connect_timeout: 5.0
+  total_timeout: 25.0     # hard deadline per network call (seconds)
+  rate_per_sec: 1.0       # token-bucket refill rate per provider
+  burst: 2
+  backoff_base: 1.0
+  backoff_factor: 2.0
+  backoff_cap: 60.0
+  max_attempts: 6
+  breaker_threshold: 5    # consecutive failures before the breaker opens
+  breaker_cooldown: 120.0 # seconds before a half-open probe
+  batch: true             # translate a whole page in one index-tagged request
+  chunk_chars:            # per-request limits (verified: google < 5000, mymemory < 500)
+    google: 4500
+    mymemory: 450
+    libretranslate: 4500
+    local: 1500
+    tm: 100000
+  cache: true             # persistent SQLite cache in <cache_dir>/translations.sqlite3
+  min_arabic_ratio: 0.6   # share of letters that must be Arabic in a valid output
+  max_length_ratio: 8.0   # output/input length ratio above this is suspicious
+
+typeset:
+  font: NotoNaskhArabic
+  fallback_fonts: [NotoSansArabic, Amiri, Cairo, Tajawal, Almarai, Changa, Lalezar]
+  symbol_fonts: [NotoSansSymbols2, NotoSansSymbols]
+  render_path: basic      # basic (reshaper + bidi + BASIC) | raqm (only if libraqm exists)
+  line_spacing: 1.25
+  line_spacing_floor: 1.0
+  min_size_px: 10
+  min_size_page_frac: 0.008
+  max_size_page_frac: 0.08
+  max_size_safe_frac: 0.9
+  padding_frac: 0.06
+  padding_min_px: 4
+  alignment: center       # center | right (right applies to narration)
+  digits: western         # western | arabic_indic
+  outline_frac: 0.08      # outline width for free_text/narration over artwork
+  shadow: false
+  contrast_target: 4.5
+  strip_harakat: true
+  strategy: shape         # shape (per-line spans from the bubble mask) | rect (inscribed box)
+
+output:
+  format: png             # png | jpg | webp | cbz
+  jpeg_quality: 95
+  webp_quality: 95
+  suffix: _ar
+  write_sidecar: true
+  keep_icc: true
+  resume: false
+  force: false

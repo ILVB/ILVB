@@ -18,10 +18,10 @@ from PIL import Image, ImageDraw, ImageFont, features
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "spikes" / "out"
 FONTS = [
-    ROOT / "assets/fonts/NotoNaskhArabic-Variable.ttf",
-    ROOT / "assets/fonts/Tajawal-Regular.ttf",
+    ROOT / "src/manga_ar/assets/fonts/NotoNaskhArabic-Variable.ttf",
+    ROOT / "src/manga_ar/assets/fonts/Tajawal-Regular.ttf",
 ]
-SYMBOL_FONT = ROOT / "assets/fonts/NotoSansSymbols2-Regular.ttf"
+SYMBOL_FONT = ROOT / "src/manga_ar/assets/fonts/NotoSansSymbols2-Regular.ttf"
 STRINGS = [
     "مرحبا بالعالم",
     "لا تذهب!",
