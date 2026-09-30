@@ -50,6 +50,14 @@ See `docs/STATUS.md` (checklist + exact next step). Decisions/waivers: `docs/DEC
 - Page composition: clean image has ALL text inpainted; untranslated/failed regions get
   original pixels back at compose time unless erase_untranslated (typeset/page.py, D-034).
 
+## Pipeline / GUI invariants (pipeline.py, ui/)
+- Stages are injected via `Stages` (tests use tests/e2e/fakes.py); build_stages is lazy.
+- Sidecar `<stem>_ar.mangaar.json` + `.mangaar/<stem>.{source,clean}.png` + `settings`
+  snapshot ⇒ rerender needs no ML (D-036). Exit codes 0/2/1 (D-037). Resume D-038.
+- GUI: no logic in callbacks (ui/handlers.py GuiController); queue concurrency 1;
+  analytics off before `import gradio`; bind 127.0.0.1.
+- Slow real-stage tests: `.venv/bin/python -m pytest -m slow` (RapidOCR + TM, offline).
+
 ## Environment facts (docs/ENV_AUDIT.md)
 - Blocked egress: huggingface.co, translate.google.com, mymemory, Paddle hosts, fonts.google.
 - Reachable: PyPI, GitHub releases + raw. Usable models: EasyOCR, RapidOCR (bundled),

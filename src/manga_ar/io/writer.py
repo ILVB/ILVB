@@ -17,6 +17,16 @@ from manga_ar.io.naming import long_path
 RgbArray = npt.NDArray[np.uint8]
 
 
+def _umask() -> int:
+    mask = os.umask(0)
+    os.umask(mask)
+    return mask
+
+
+# mkstemp creates 0600 files; outputs should get the permissions a plain open() would.
+_FILE_MODE = 0o666 & ~_umask()
+
+
 def atomic_write_bytes(path: Path, data: bytes) -> None:
     """Write ``data`` to a temp file in the same directory, fsync, then ``os.replace``."""
     target = long_path(path)
@@ -28,6 +38,8 @@ def atomic_write_bytes(path: Path, data: bytes) -> None:
             fh.write(data)
             fh.flush()
             os.fsync(fh.fileno())
+        if os.name != "nt":
+            tmp.chmod(_FILE_MODE)
         tmp.replace(target)
     except BaseException:
         tmp.unlink(missing_ok=True)

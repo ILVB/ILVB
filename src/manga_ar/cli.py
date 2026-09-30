@@ -52,7 +52,71 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("fonts", help="list fonts or check their glyph coverage")
     _common(p)
     p.add_argument("action", choices=["list", "check"])
+
+    p = sub.add_parser("translate", help="translate pages, folders or CBZ/ZIP archives")
+    _common(p)
+    p.add_argument("inputs", nargs="+", type=Path, help="images, folders or .cbz/.zip files")
+    p.add_argument("-o", "--output", type=Path, required=True, help="output directory")
+    p.add_argument("--source", choices=["auto", "ja", "ko", "zh"], default=None)
+    p.add_argument("--preset", choices=["fast", "balanced", "quality"], default=None)
+    p.add_argument(
+        "--reading-order", choices=["auto", "manga_rtl", "comic_ltr", "webtoon_ttb"], default=None
+    )
+    p.add_argument(
+        "--providers", type=_csv, default=None, help="comma list, e.g. tm,google,mymemory,local"
+    )
+    p.add_argument("--glossary", type=Path, default=None, help="glossary JSON/YAML/CSV")
+    p.add_argument("--tm", type=Path, default=None, help="translation memory JSON/YAML/CSV")
+    p.add_argument("--detector", choices=["auto", "classical", "hybrid", "rapid", "craft", "ctd"])
+    _typeset_flags(p)
+    p.add_argument("--sfx", choices=["skip", "translate"], default=None)
+    p.add_argument("--format", choices=["png", "jpg", "webp", "cbz"], default=None)
+    p.add_argument("--resume", action="store_true", default=None, help="skip finished pages")
+    p.add_argument("--force", action="store_true", default=None, help="reprocess everything")
+    p.add_argument("--debug", action="store_true", default=None, help="write debug artifacts")
+    p.add_argument("--quiet", action="store_true", help="no progress bar")
+
+    p = sub.add_parser("rerender", help="re-typeset pages from their sidecar JSON")
+    _common(p)
+    p.add_argument("sidecars", nargs="+", type=Path, help="<page>_ar.mangaar.json files")
+    _typeset_flags(p)
+
+    p = sub.add_parser("demo", help="generate a synthetic page and run the whole pipeline")
+    _common(p)
+    p.add_argument("-o", "--output", type=Path, default=Path("mangaar-demo"))
+
+    p = sub.add_parser("gui", help="start the local web GUI (127.0.0.1 only by default)")
+    _common(p)
+    p.add_argument("--host", default="127.0.0.1")
+    p.add_argument("--port", type=int, default=7860)
+    p.add_argument("--no-browser", action="store_true", help="do not open a browser tab")
     return parser
+
+
+def _csv(value: str) -> list[str]:
+    items = [v.strip() for v in value.split(",") if v.strip()]
+    if not items:
+        raise argparse.ArgumentTypeError("expected a comma-separated list")
+    return items
+
+
+def _typeset_flags(p: argparse.ArgumentParser) -> None:
+    p.add_argument("--font", default=None, help="Arabic font key (see `fonts list`)")
+    p.add_argument("--digits", choices=["western", "arabic_indic"], default=None)
+    p.add_argument(
+        "--erase-untranslated",
+        action="store_true",
+        default=None,
+        help="erase text that could not be translated instead of keeping the original",
+    )
+
+
+def _typeset_overrides(args: argparse.Namespace) -> dict[str, Any]:
+    return {
+        "typeset.font": args.font,
+        "typeset.digits": args.digits,
+        "inpaint.erase_untranslated": args.erase_untranslated,
+    }
 
 
 def config_from_args(args: argparse.Namespace, extra: dict[str, Any] | None = None) -> AppConfig:
@@ -143,7 +207,109 @@ def cmd_fonts(args: argparse.Namespace) -> int:
     return EXIT_OK if bad == 0 else EXIT_FATAL
 
 
-COMMANDS = {"doctor": cmd_doctor, "models": cmd_models, "fonts": cmd_fonts}
+def _progress_bar(enabled: bool) -> tuple[Any, Any]:
+    if not enabled:
+        return None, None
+    from tqdm import tqdm
+
+    bar = tqdm(total=1000, unit="‰", bar_format="{l_bar}{bar}| {desc}", file=sys.stderr)
+
+    def update(fraction: float, message: str) -> None:
+        bar.n = round(fraction * 1000)
+        bar.set_description_str(message[-60:])
+        bar.refresh()
+
+    return bar, update
+
+
+def cmd_translate(args: argparse.Namespace) -> int:
+    from manga_ar.pipeline import Pipeline
+
+    extra: dict[str, Any] = {
+        "preset": args.preset,
+        "input.source_lang": args.source,
+        "input.reading_order": args.reading_order,
+        "translate.providers": args.providers,
+        "translate.glossary_file": str(args.glossary) if args.glossary else None,
+        "translate.tm_file": str(args.tm) if args.tm else None,
+        "detect.detector": args.detector,
+        "detect.sfx": args.sfx,
+        "output.format": args.format,
+        "output.resume": args.resume,
+        "output.force": args.force,
+        "runtime.debug": args.debug,
+        **_typeset_overrides(args),
+    }
+    cfg = config_from_args(args, extra)
+    bar, update = _progress_bar(not args.quiet and sys.stderr.isatty())
+    try:
+        report = Pipeline(cfg, progress=update).run(args.inputs, args.output)
+    finally:
+        if bar is not None:
+            bar.close()
+    counts = ", ".join(f"{k}: {v}" for k, v in sorted(report.counts.items()))
+    sys.stdout.write(f"{len(report.pages)} page(s) — {counts}\n")
+    for page in report.pages:
+        if not page.succeeded:
+            sys.stdout.write(f"  {page.status.upper()} {page.name}: {page.error or ''}\n")
+    for note in report.notes:
+        sys.stdout.write(f"note: {note}\n")
+    sys.stdout.write(f"report: {args.output / 'report.md'}\n")
+    return report.exit_code
+
+
+def cmd_rerender(args: argparse.Namespace) -> int:
+    from manga_ar.pipeline import rerender
+    from manga_ar.typeset.fonts import FontRegistry
+
+    cfg = config_from_args(args)
+    registry = FontRegistry()
+    ok = 0
+    for sidecar in args.sidecars:
+        try:
+            result = rerender(sidecar, cfg, _typeset_overrides(args), registry)
+        except MangaArError as exc:
+            sys.stdout.write(f"FAIL {sidecar}: {exc}\n")
+            continue
+        ok += 1
+        sys.stdout.write(f"ok {sidecar} → {result.output}\n")
+    if ok == len(args.sidecars):
+        return EXIT_OK
+    return EXIT_PARTIAL if ok else EXIT_FATAL
+
+
+def cmd_demo(args: argparse.Namespace) -> int:
+    from manga_ar.demo import run_demo
+
+    cfg = config_from_args(args)
+    result = run_demo(cfg, args.output)
+    sys.stdout.write(f"input:  {result.input_path}\n")
+    sys.stdout.write(f"output: {result.output_path}\n")
+    sys.stdout.write(f"regions translated: {result.translated}/{result.expected}\n")
+    if result.exit_code == EXIT_OK:
+        sys.stdout.write("demo OK: open the output image to see the Arabic lettering\n")
+    else:
+        sys.stdout.write(f"demo incomplete; see {args.output / 'output' / 'report.md'}\n")
+    return result.exit_code
+
+
+def cmd_gui(args: argparse.Namespace) -> int:
+    from manga_ar.ui.gradio_app import launch
+
+    cfg = config_from_args(args)
+    launch(cfg, host=args.host, port=args.port, open_browser=not args.no_browser)
+    return EXIT_OK
+
+
+COMMANDS = {
+    "doctor": cmd_doctor,
+    "models": cmd_models,
+    "fonts": cmd_fonts,
+    "translate": cmd_translate,
+    "rerender": cmd_rerender,
+    "demo": cmd_demo,
+    "gui": cmd_gui,
+}
 
 
 def main(argv: Sequence[str] | None = None) -> int:

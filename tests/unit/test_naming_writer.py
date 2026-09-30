@@ -106,3 +106,13 @@ def test_encode_rejects_bad_arrays() -> None:
     with pytest.raises(MangaArError):
         encode_image(gradient_rgb(), "gif")
     assert os.sep  # keep import used on all platforms
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX permissions")
+def test_atomic_write_respects_umask(tmp_path: Path) -> None:
+    from manga_ar.io.writer import _FILE_MODE, atomic_write_bytes
+
+    target = tmp_path / "out.bin"
+    atomic_write_bytes(target, b"x")
+    assert target.stat().st_mode & 0o777 == _FILE_MODE
+    assert _FILE_MODE & 0o400  # owner can always read

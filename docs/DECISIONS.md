@@ -395,6 +395,90 @@ original pixels back inside their inpaint mask:
   re-inpainting;
 - typesetting errors are isolated per region (flag TYPESET_FAILED; the page continues).
 
+**D-035 — SFX handling.** Every stage skips `sfx` regions, which is the default
+(`detect.sfx: skip`) and leaves them untouched. With `--sfx translate` the pipeline
+re-types SFX regions as `free_text` right after segmentation and flags them `FROM_SFX`,
+so provenance survives in the sidecar. They then get free-text treatment: OCR,
+inpainting, and typesetting with an outline over artwork.
+
+**D-036 — Output layout.**
+
+| Output | Path |
+|---|---|
+| page image | `<out>/<relative dir>/<stem>_ar.<ext>` |
+| sidecar | `<stem>_ar.mangaar.json`, next to the page |
+| work images | `.mangaar/<stem>.source.png` and `.mangaar/<stem>.clean.png` |
+| debug artifacts | `<out>/debug/<relative dir>/<stem>/` |
+| reports | `report.json` + `report.md` at the output root |
+
+- Relative directories are preserved: input folder name / sub-folders, and
+  `<archive stem>/<member dirs>` for archives.
+- The work images are the decoded original and the page with all text removed. They
+  make a sidecar self-contained for `rerender` and the GUI; archive members and GUI
+  uploads have no stable original file. The cost is two lossless PNGs per page.
+- The sidecar also stores a snapshot of the configuration (`settings`). `rerender` uses
+  it plus the explicit flags, so a page re-renders with the settings it was produced
+  with.
+- With `--format cbz`, pages are grouped into one book per input archive, input folder,
+  or parent folder of loose files, written as `<group>_ar.cbz` with PNG members named
+  `<member dir>/<stem>_ar.png`. The sidecars live in `<group>/`.
+- The output directory is excluded when scanning inputs, so a rerun into an output
+  folder inside the input folder does not translate its own results.
+
+**D-037 — Page status and exit codes.**
+- Successes: `ok`, `degraded` (exported, but some region is UNTRANSLATED,
+  TYPESET_FAILED or OCR_FAILED, or failed inpainting), `no_text` (exported unchanged,
+  E21) and `resumed`.
+- Failures: `skipped` (unreadable or unsupported input), `failed` (crashed) and
+  `cancelled`.
+- Exit code: 0 when every page succeeded, 2 when some did not or the run was cancelled,
+  1 when none succeeded (or on a fatal error). Degraded pages keep exit code 0; the
+  report counts their flags and notes how to fix them, e.g. installing the local MT model
+  for E4.
+
+**D-038 — Resume (E19).** A page is "done" when its sidecar has the same config hash
+(runtime-only keys excluded; the MangaAR version included) and the same source SHA-256.
+- Done page whose output exists: skipped.
+- Output missing, or a CBZ member: re-rendered from the work images, without detection.
+- Degraded page: only its UNTRANSLATED regions are sent to translation again, then the
+  page is re-rendered. A rerun after connectivity returns therefore fills the gaps
+  cheaply.
+- `--force` reprocesses everything.
+
+**D-039 — Source-language vote (E6).** An explicit `--source` wins. Otherwise
+`detect_language` scores (confidence × script agreement, plus a vertical-text prior for
+Japanese) accumulate per book (archive or folder) until three pages have voted; later
+pages reuse the leading language. A per-region `override.source_lang` wins for that
+region. OCR and translation are grouped by region language.
+
+**D-040 — Isolation and cancellation.**
+- Region level: an OCR crash flags OCR_FAILED. An inpainting failure flags SKIPPED;
+  composition then restores that region's original pixels. A translation exception
+  flags UNTRANSLATED. A typesetting error flags TYPESET_FAILED.
+- Page level: any other exception fails only that page.
+- Cancellation (`CancelToken`) is cooperative: it is checked between pages, between
+  regions (OCR and inpainting) and before typesetting. The run still writes the CBZs and
+  reports for what was finished.
+
+**D-041 — GUI.**
+- One `GuiController` per launch. Each run gets a directory in a temporary workspace
+  that is deleted at exit (atexit), and Gradio's copied files use
+  `delete_cache=(3600, 3600)`.
+- All events share one queue worker (`default_concurrency_limit=1`); only Cancel
+  bypasses the queue. Stages are cached for the current configuration only (one model
+  set in memory).
+- Telemetry: `GRADIO_ANALYTICS_ENABLED=False` is set before Gradio is imported, and
+  `analytics_enabled=False` is also set on the Blocks.
+- Network exposure: the GUI binds to `127.0.0.1` with `share=False`; any other host logs
+  a warning.
+- `allowed_paths` covers only the workspace.
+- Review & Edit writes the table edits into region overrides (text, font, size, skip),
+  then calls the same `rerender` as the CLI.
+- Downloads are a ZIP of the outputs (without work dirs or debug files).
+
+**D-042 — File permissions.** `mkstemp` creates 0600 files; atomic writes now chmod the
+temp file to `0666 & ~umask` before the rename, so outputs get normal permissions.
+
 ## Waivers
 
 **W-001 (SP-B / P2 OCR JA via manga-ocr).** Reason: huggingface.co blocked. Risk: vertical
@@ -411,8 +495,17 @@ api.mymemory.translated.net are blocked. Mitigation: full resilience suite with 
 The live smoke `pytest -m network tests/integration/test_translate_live.py` has to be run
 on an unrestricted host.
 
-**W-004 (P4/P6 offline local-MT smoke, DoD #5).** Reason: the Marian/M2M100 weights are
+**W-004 (P4/P6 offline local-MT smoke, DoD #5; Gate P6 "offline E2E through the local MT
+model").** Reason: the Marian/M2M100 weights are
 only reachable on huggingface.co. Mitigation: the local provider is implemented and unit
 tested with a fake model. Offline E2E is proven with the TM provider. On an unrestricted
 host, `manga-arabic models download local-mt` followed by `pytest -m integration -k
 local_mt` completes the gate.
+
+Gate P6 evidence under W-004: `tests/e2e/test_cli_real.py::
+test_offline_without_local_model_keeps_originals_and_explains` runs `translate --offline
+--providers local`. Without the weights it verifies E4 (regions UNTRANSLATED, originals
+kept, exit 0, and the report explains `models download local-mt`). With the weights
+installed, the same test asserts that every region is translated offline. The full
+offline pipeline is also proven with the TM provider: `demo`, and `--offline` in the CLI
+E2E tests.

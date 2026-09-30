@@ -47,6 +47,7 @@ class Flag(str, Enum):
     GLOSSARY_DEGRADED = "GLOSSARY_DEGRADED"
     TYPESET_FAILED = "TYPESET_FAILED"
     SEAM_MERGED = "SEAM_MERGED"
+    FROM_SFX = "FROM_SFX"  # an SFX region processed as free text (``detect.sfx: translate``)
 
 
 @dataclass(frozen=True, order=True)
@@ -342,8 +343,11 @@ class PageDocument:
     status: str = "pending"
     warnings: list[str] = field(default_factory=list)
     timings: dict[str, float] = field(default_factory=dict)
-    clean_image: str | None = None
-    output: str | None = None
+    clean_image: str | None = None  # inpainted page (all text removed), relative to sidecar
+    source_image: str | None = None  # decoded original page, relative to the sidecar
+    output: str | None = None  # rendered page, relative to the sidecar (or the CBZ)
+    output_member: str | None = None  # member name when ``output`` is a CBZ
+    settings: dict[str, Any] = field(default_factory=dict)  # config used (for rerender)
     was_grayscale: bool = False
     schema_version: int = SCHEMA_VERSION
     created_with: str = __version__

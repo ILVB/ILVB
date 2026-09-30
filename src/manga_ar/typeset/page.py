@@ -67,7 +67,8 @@ def typeset_page(
         region.layout = None
         region.flags.difference_update({Flag.OVERFLOW_RISK, Flag.TYPESET_FAILED})
         text = region.arabic_text
-        if region.override.skip or text is None or not text.strip():
+        skipped = region.override.skip or Flag.SKIPPED in region.flags
+        if skipped or text is None or not text.strip():
             continue
         try:
             placement = typesetter.layout(region, text, (h, w), clean)

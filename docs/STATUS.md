@@ -7,7 +7,7 @@
 - [x] P3 Inpainting (gate passed; tag phase-3-complete)
 - [x] P4 Translation (gate passed with waivers W-003/W-004; tag phase-4-complete)
 - [x] P5 Arabic typesetting + ARVS (gate passed; tag phase-5-complete)
-- [ ] P6 Pipeline, CLI, GUI
+- [x] P6 Pipeline, CLI, GUI (gate passed with waiver W-004; tag phase-6-complete)
 - [ ] P7 Hardening, packaging, release
 
 ## Phase 5 summary
@@ -19,12 +19,26 @@
 - typeset/ coverage 93 %; typical region ≤ ~45 ms.
 - Page composition with untranslated restore + per-region failure isolation (D-034).
 
+## Phase 6 summary
+- `pipeline.py`: orchestration with region/page isolation, language vote, reading order,
+  SFX policy, sidecar + work images, resume (hash + sha, degraded retry), CBZ repack,
+  debug artifacts, cancellation, `rerender`; `report.py` (report.json/.md, exit codes).
+- CLI: translate / rerender / demo / gui / doctor / models / fonts (all flags from the spec).
+- GUI (Gradio 6): Translate (files, folder, CBZ; progress; cancel; before/after slider;
+  ZIP), Review & Edit (region table → overrides → re-render; re-translate region),
+  Settings, Diagnostics. Single queue worker, temp workspace cleaned at exit.
+- Tests: fake-stage E2E (15), GUI handlers (4) + gradio_client smoke (upload → translate →
+  edit → re-render), in-process CLI (4), real-stage CLI E2E (`-m slow`, 4: corrupted batch
+  exit 2 + resume + rerender, offline/E4, demo, missing input). Default suite 288 tests
+  in ~45 s; overall coverage 87 %.
+
 ## Known issues
 - Glyphs drawn directly on dense hatching without a halo may be missed (D-019).
 - Network policy blocks HF/Google/MyMemory/Paddle hosts (waivers W-001..W-004).
 - ♪ from Noto Sans Symbols renders visibly smaller than Arabic text (font metrics).
-- `detect.sfx: translate` is not wired yet (all stages skip SFX) → Phase 6.
+- `rerender` does not re-embed the source ICC profile (it is not stored in the sidecar).
 
 ## Exact next step
-Phase 6: pipeline.py (orchestration, isolation, resume, export, report), full CLI
-(translate/gui/rerender/demo), Gradio GUI (4 tabs), E2E tests.
+Phase 7: fuzzing + 50-page soak, profiling, docs (README with responsible use,
+ARCHITECTURE, USER_GUIDE, TROUBLESHOOTING, THIRD_PARTY_LICENSES), launchers, CHANGELOG,
+clean-install test, full QUALITY_REPORT (with OCR), non-UTF-8 locale run, v0.1.0.
