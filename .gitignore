@@ -1,0 +1,43 @@
+# Environments and caches
+.venv/
+venv*/
+.cache/
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.hypothesis/
+.coverage
+coverage.xml
+htmlcov/
+*.egg-info/
+build/
+dist/
+
+# Models and large binaries (never commit weights)
+*.pt
+*.pth
+*.onnx
+*.ckpt
+*.safetensors
+*.bin
+*.argosmodel
+models/
+
+# Outputs and artifacts
+out/
+output/
+outputs/
+artifacts/
+spikes/out/
+*.mangaar.json
+report.json
+report.md
+tests/fixtures/fonts/
+gradio_cached_examples/
+.gradio/
+
+# OS
+.DS_Store
+Thumbs.db
