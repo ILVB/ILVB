@@ -42,9 +42,10 @@ tiling:
   overlap: 192            # minimum overlap between consecutive tiles
 
 detect:
-  detector: auto          # auto(=classical) | classical | hybrid (classical + PP-OCR DB for text
-                          # over artwork) | rapid | db_primary (PP-OCR DB extended by classical
-                          # blocks) | craft | ctd (ctd: GPL-3.0 weights, opt-in)
+  detector: auto          # auto (legacy profile: classical; v2: db_primary, ADR-0004)
+                          # | classical | hybrid (classical + PP-OCR DB over artwork)
+                          # | rapid | db_primary (PP-OCR DB refined by classical blocks)
+                          # | craft | ctd (ctd: GPL-3.0 weights, opt-in)
   sfx: skip               # skip | translate
   min_glyph_px: 6         # smallest glyph side considered text
   max_glyph_frac: 0.12    # largest glyph side as a fraction of the page's shorter side

@@ -12,16 +12,23 @@ from manga_ar.models.manager import ModelManager
 log = get_logger(__name__)
 
 
+def resolve_detector(cfg: AppConfig) -> str:
+    if cfg.detect.detector != "auto":
+        return cfg.detect.detector
+    return "db_primary" if cfg.engine.profile == "v2" else "classical"
+
+
 def build_detector(cfg: AppConfig, manager: ModelManager) -> TextDetector:
     """``auto``/``classical`` → classical; ``hybrid``/``ctd``/``rapid``/``craft`` → ML-assisted
     detectors (fallback: classical).
 
-    ``auto`` stays classical because it scored best on the synthetic benchmark and needs no
-    download (DECISIONS D-011); comic-text-detector is opt-in because of its GPL weights.
+    ``auto`` is classical under the ``legacy`` profile (v0.1.0, DECISIONS D-011) and
+    ``db_primary`` under ``v2`` (ADR-0004: dev/val evidence on synthetic_v1). Both need no
+    download. comic-text-detector is opt-in because of its GPL weights.
     """
-    name = cfg.detect.detector
+    name = resolve_detector(cfg)
     classical = ClassicalDetector(cfg.detect)
-    if name in {"auto", "classical"}:
+    if name == "classical":
         return classical
     try:
         if name == "ctd":
