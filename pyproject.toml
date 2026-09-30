@@ -109,7 +109,7 @@ strict = true
 warn_unused_ignores = true
 ignore_missing_imports = true
 mypy_path = "src"
-packages = ["manga_ar"]
+packages = ["manga_ar", "tools", "benchmarks"]
 
 [[tool.mypy.overrides]]
 # OpenCV 5 ships stubs whose Mat|ndarray unions make every call site noisy; treat cv2 as
