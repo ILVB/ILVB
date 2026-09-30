@@ -1,0 +1,21 @@
+# Written human waivers for Gate 1 (shown verbatim in every report). A waiver never
+# turns a check into PASS: the check reads WAIVED with the status below and carries no
+# number. It is lifted as soon as the check becomes measurable.
+schema: 1
+waivers:
+  - id: W-HEAVY-1
+    granted: "2026-09-30"
+    by: human, in writing (ADR-0007 item 2)
+    text: >-
+      For your current environment, temporarily waive the NOT-MEASURABLE gate checks
+      for these specific models. Stub the metrics with a placeholder so the CI pipeline
+      doesn't hard-fail, but flag them as "Pending Host Download" in the reports.
+    status: PENDING-HOST-DOWNLOAD
+    models: [nllb, llm, embed, lpips]  # scripts/download_heavy_weights.py keys
+    lifted_when: benchmarks/heavy_weights.lock.json lists every model above
+    checks:
+      G-TR-1: candidate BLEU/chrF++/METEOR need NLLB or GGUF translations
+      G-TR-2: glossary adherence needs model translations
+      G-TR-3: behaviour, injection and refusal suites against a real model
+      G-TR-4: refusal/meta strings and fallback rate need model outputs
+      G-INP-2/LPIPS: the LPIPS clause needs the AlexNet backbone (SSIM/PSNR still gate)

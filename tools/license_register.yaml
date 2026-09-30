@@ -41,12 +41,12 @@ planned:
     redistribution: PyPI dependency
     flag: none
     use: local LLM provider (Phase 1.1.5)
-  - name: GGUF instruction model
-    license: per model (Apache-2.0 models preferred; Llama-family community licences are not OSI)
-    redistribution: not bundled; user download into the cache
-    flag: unverified
-    use: "Phase 1.1.5; blocked on this host (huggingface.co); chosen model recorded here before use"
-  - name: sentence-transformers + multilingual MiniLM embedding model
+  - name: GGUF instruction model (Qwen/Qwen2.5-7B-Instruct-GGUF, Q4_K_M)
+    license: Apache-2.0 (the 7B size; Qwen2.5 3B/72B use other licences and are not used)
+    redistribution: not bundled; scripts/download_heavy_weights.py into the cache, SHA-256 locked
+    flag: none
+    use: "Phase 1.1.5 local LLM provider; download pending on the human's host (W-HEAVY-1)"
+  - name: sentence-transformers + paraphrase-multilingual-MiniLM-L12-v2
     license: Apache-2.0 (library and model)
     redistribution: PyPI dependency; model downloaded into the cache
     flag: none
