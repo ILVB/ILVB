@@ -31,6 +31,17 @@ PHASE2_PATHS = (
     "docs/PLAN_PHASE2.md",
 )
 
+# Frozen artefacts (PD-3): exactly one commit may touch each (its creation); only the
+# human may authorise a change, in writing.
+IMMUTABLE = (
+    "benchmarks/baseline.lock.json",
+    "benchmarks/manifests/synthetic_v1.json",
+    "benchmarks/manifests/synthetic_v1.test.sha256",
+    "benchmarks/results/baseline_v0.1.0.json",
+    "benchmarks/results/baseline_v0.1.0.json.sha256",
+    "benchmarks/budgets.yaml",
+)
+
 # Files whose change after the approved commit invalidates Gate 1 (they produce results).
 PHASE1_SCOPED = ("src/manga_ar/*", "benchmarks/*", "tools/validate_phase1.py", "configs/*")
 PHASE1_UNSCOPED = (

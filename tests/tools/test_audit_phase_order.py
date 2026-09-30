@@ -91,6 +91,13 @@ def test_allowed_dependencies_and_lock(repo: Path) -> None:
     assert any("en-core-web-sm in uv.lock" in m for m in fails(repo))
 
 
+def test_frozen_files_are_immutable(repo: Path) -> None:
+    commit(repo, {"benchmarks/budgets.yaml": "a: 1\n"}, f"chore: budgets\n\n{OK_TRAILERS}")
+    assert fails(repo) == []  # creation is allowed
+    commit(repo, {"benchmarks/budgets.yaml": "a: 2\n"}, f"chore: loosen\n\n{OK_TRAILERS}")
+    assert any("frozen benchmarks/budgets.yaml changed" in m for m in fails(repo))
+
+
 def test_trailer_rules(repo: Path) -> None:
     commit(repo, {"a": "1"}, "feat: no trailers")
     commit(repo, {"b": "1"}, "feat: wrong step\n\nPhase: 1\nStep: 0.2")

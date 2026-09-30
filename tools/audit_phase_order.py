@@ -5,7 +5,8 @@ Usage: python -m tools.audit_phase_order [--repo .] [--commit-msg FILE] [--stage
 Checks every commit after the frozen baseline commit (benchmarks/baseline.lock.json) and
 fails (exit 1) if, before tag `phase1-gate-passed`: a commit carries `Phase: 2`; any
 Phase 2 path exists in a commit tree; a Phase 2 dependency is declared in pyproject.toml
-or resolved in uv.lock. It also fails when any commit lacks valid Phase/Step git trailers.
+or resolved in uv.lock. It also fails when any commit lacks valid Phase/Step git trailers,
+or when a frozen artefact (phase_map.IMMUTABLE) is touched by more than one commit.
 Commits listed in tools/trailer_exceptions.json (Phase/Step lines present in the body but
 outside the trailer block) are verified line by line and reported as WARN on every run.
 
@@ -143,6 +144,11 @@ def audit(repo: Path) -> list[Finding]:
                      for f in files if phase_map.is_phase2_path(f)]  # fmt: skip
         deps = dependency_problems(_show(repo, sha, "pyproject.toml"), _show(repo, sha, "uv.lock"))
         findings += [Finding(sha, f"Phase 2 dependency before the gate: {d}") for d in deps]
+    for path in phase_map.IMMUTABLE:
+        touching = git(repo, "log", "--format=%H", f"{base}..HEAD", "--", path).split()
+        if len(touching) > 1:
+            what = f"frozen {path} changed after its creation ({len(touching)} commits touch it)"
+            findings.append(Finding(touching[0], what))
     return findings
 
 
