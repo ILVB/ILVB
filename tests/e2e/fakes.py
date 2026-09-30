@@ -132,9 +132,11 @@ class FakeTranslator:
     table: dict[str, str] = field(default_factory=lambda: dict(ARABIC))
     offline: bool = True
     calls: int = 0
+    sources: list[str] = field(default_factory=list)
 
     def translate_regions(self, regions: Sequence[Region], src: str) -> None:
         self.calls += 1
+        self.sources.append(src)
         for r in regions:
             if r.type == RegionType.SFX or r.override.skip or Flag.PASS_THROUGH in r.flags:
                 continue

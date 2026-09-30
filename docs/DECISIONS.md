@@ -479,6 +479,33 @@ region. OCR and translation are grouped by region language.
 **D-042 — File permissions.** `mkstemp` creates 0600 files; atomic writes now chmod the
 temp file to `0666 & ~umask` before the rename, so outputs get normal permissions.
 
+**D-043 — torch pulls proprietary NVIDIA runtime libraries on Linux (licence flag).**
+`pip-licenses` shows that the pinned PyPI `torch` 2.14.0 Linux wheel depends on 17
+`nvidia-*` packages plus `cuda-toolkit`. All are proprietary, though redistributable
+under NVIDIA's EULA.
+- Affected: only the torch-based extras (`ocr`, `lama`, `manga`, `offline-mt`). The core,
+  `rapid` and `gui` installs are entirely FOSS.
+- FOSS alternative: PyTorch's CPU wheels. download.pytorch.org is blocked on this host,
+  so the lock cannot be regenerated against that index here.
+- Current handling: the lock keeps PyPI torch. README, DEPENDENCIES and
+  THIRD_PARTY_LICENSES flag the NVIDIA packages and give the CPU-wheel recipe.
+- Left to the user (licensing decision): switch the lock to CPU wheels on a host that can
+  reach download.pytorch.org, using `[[tool.uv.index]]` with `explicit = true` plus
+  `[tool.uv.sources]`.
+
+**D-044 — Performance pass (Phase 7 profiling).** cProfile on six Chinese pages showed
+detection taking about 60 % of page time, most of it full-page dilations per text group.
+- The classical detector now works in per-container windows. The window margin
+  (radius + 4) covers every dilation radius, and the output is bit-identical on 126
+  benchmark pages. Detection dropped from 290 to 123 ms per page.
+- `BBox.from_mask` now uses `any()` reductions.
+- Work images are written with PNG compression level 1 (lossless, about 3× faster).
+- End to end: 0.9 → 0.47 s per page (fast/balanced), 0.53 s (quality), on a 4-core CPU.
+- Soak (50 pages): resident memory grew 5 MB after warm-up; no leak.
+- Deep fuzzing: 3,000 examples each for loader, archive, normaliser, shaping and sidecar
+  properties. It found one bug: Pillow raised TypeError on a corrupt TIFF IFD. Every
+  decoder exception now becomes `ImageLoadError`.
+
 ## Waivers
 
 **W-001 (SP-B / P2 OCR JA via manga-ocr).** Reason: huggingface.co blocked. Risk: vertical

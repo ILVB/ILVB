@@ -77,3 +77,34 @@ def test_webtoon_seam_ground_truth_once(cjk_ready: Path, cache_dir: Path) -> Non
     for r in page.regions:
         hits = [m for m, _ in merged if m.iou(r.text_bbox) > 0.9]
         assert len(hits) == 1, r.text
+
+
+def test_detection_retries_smaller_tiles_on_memory_error() -> None:
+    """E10: out of memory on a tall strip → retry with halved tiles; give up below 512."""
+    import numpy as np
+
+    from manga_ar.config import load_config
+    from manga_ar.detect.base import TextBlock
+    from manga_ar.detect.tiled import detect_page
+    from manga_ar.schemas import BBox
+
+    class Hungry:
+        name = "hungry"
+
+        def __init__(self, limit: int) -> None:
+            self.limit = limit
+            self.heights: list[int] = []
+
+        def detect(self, rgb: np.ndarray) -> list[TextBlock]:
+            self.heights.append(rgb.shape[0])
+            if rgb.shape[0] > self.limit:
+                raise MemoryError
+            return [TextBlock(BBox(10, 10, 40, 40))]
+
+    strip = np.full((6000, 800, 3), 255, np.uint8)
+    tiling = load_config(environ={}).tiling
+    det = Hungry(limit=1100)
+    blocks = detect_page(strip, det, tiling)
+    assert blocks and max(det.heights) > 1100 and det.heights[-1] <= 1100
+    with pytest.raises(MemoryError):
+        detect_page(strip, Hungry(limit=100), tiling)

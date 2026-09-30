@@ -415,7 +415,7 @@ class Pipeline:
         todo = [r for r in regions if Flag.SKIPPED not in r.flags]
         by_lang: dict[str, list[Region]] = defaultdict(list)
         for r in todo:
-            by_lang[r.source_lang or lang].append(r)
+            by_lang[r.override.source_lang or r.source_lang or lang].append(r)
         for src, group in by_lang.items():
             try:
                 self.stages.translator.translate_regions(group, src)

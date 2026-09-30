@@ -286,9 +286,8 @@ class GuiController:
             raise MangaArError(f"{region.id} has no source text to translate")
         cfg = self.config_for(settings)
         translator = self._stages_for(cfg).translator
-        result = translator.translate_text(
-            region.source_text, region.source_lang or doc.lang or "ja"
-        )
+        src = region.override.source_lang or region.source_lang or doc.lang or "ja"
+        result = translator.translate_text(region.source_text, src)
         if result is None:
             raise MangaArError(f"{region.id}: every translation provider failed")
         region.translation = result

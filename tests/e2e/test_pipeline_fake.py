@@ -259,3 +259,18 @@ def test_formats(tmp_path: Path, fmt: str) -> None:
     write_image(tmp_path / "a.png", page(), "png")
     report = _run(_cfg(**{"output.format": fmt}), [tmp_path / "a.png"], tmp_path / "o")
     assert (tmp_path / "o" / f"a_ar.{fmt}").is_file() and report.exit_code == EXIT_OK
+
+
+def test_region_language_override_on_resume(tmp_path: Path) -> None:
+    """E6: a per-region source-language override (sidecar/GUI) drives translation."""
+    src = tmp_path / "in.png"
+    write_image(src, page(), "png")
+    out = tmp_path / "out"
+    _run(_cfg(), [src], out, translator=FakeTranslator(table={}))
+    sidecar = out / "in_ar.mangaar.json"
+    doc = PageDocument.load(sidecar)
+    doc.regions[0].override.source_lang = "ko"
+    doc.save(sidecar)
+    translator = FakeTranslator()
+    _run(_cfg(**{"output.resume": True}), [src], out, translator=translator)
+    assert sorted(translator.sources) == ["ko", "zh"]

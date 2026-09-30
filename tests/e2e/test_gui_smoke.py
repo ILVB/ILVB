@@ -38,6 +38,7 @@ def gui(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[tuple[Any, 
     monkeypatch.setattr(controller, "_stages_for", lambda c: fake_stages(c))
     port = _free_port()
     app, _ = launch(cfg, port=port, open_browser=False, block=False, controller=controller)
+    assert app._queue.default_concurrency_limit == 1  # one worker: ML runtimes (E17)
     try:
         yield controller, f"http://127.0.0.1:{port}/"
     finally:

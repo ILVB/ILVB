@@ -61,3 +61,14 @@ opencv-python-headless`. `manga-arabic doctor` fails loudly while duplicates exi
 - OpenCV 5.0: `cv2.inpaint`, `MSER_create` and `imdecode` all verified present.
 - Gradio 6.29: `Blocks.queue(default_concurrency_limit=1)` and `launch(server_name=…)`.
 - PaddleOCR 3.7: `PaddleOCR(lang=…).predict()` (the 2.x `.ocr()` is kept as a fallback).
+
+## torch and NVIDIA libraries (licence flag)
+On Linux x86_64, the PyPI `torch` wheel pinned in `uv.lock` (2.14.0) depends on the CUDA
+runtime (`nvidia-*`, `cuda-toolkit`). These libraries are proprietary but redistributable
+under NVIDIA's EULA. Only the torch-based extras pull them: `ocr`, `lama`, `manga` and
+`offline-mt`.
+
+For a fully open-source environment, install the CPU build first, then MangaAR:
+`pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu`.
+Re-locking uv against that index needs download.pytorch.org, which this build host
+blocks (D-043). Windows and macOS PyPI torch wheels contain no NVIDIA libraries.
