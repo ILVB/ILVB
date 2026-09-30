@@ -389,8 +389,12 @@ class PageBuilder:
         bubble_mask: CropMask | None = None
         if kind in {"bubble", "narration"}:
             mask = self.shape_mask("rect" if kind == "narration" else shape, box_hint, tail)
-            self.draw_bubble(mask, fill, outline=outline if kind == "bubble" else 2)
-            bubble_mask = CropMask.from_full(mask)
+            width = outline if kind == "bubble" else 2
+            self.draw_bubble(mask, fill, outline=width)
+            # Ground truth is the fillable interior (outline excluded), which is what the
+            # segmenter, the inpainter's allowed zone and the typesetter work with.
+            interior = cv2.erode(mask.astype(np.uint8), np.ones((2 * width + 1,) * 2, np.uint8))
+            bubble_mask = CropMask.from_full(interior > 0)
         text_box, text_full = self._stamp_text(ink, center, text_color)
         if furigana and vertical:
             small = self.render_text("ふりがな", max(8, size // 2), True, "ja", max_col=4)
@@ -475,11 +479,22 @@ def _ordered_panels(grid: list[list[BBox]], order: str) -> list[BBox]:
 
 # ---------------------------------------------------------------------- scenarios
 def basic_page(
-    lang: str = "ja", seed: int = 0, cache_dir: Path | None = None, width: int = 900
+    lang: str = "ja",
+    seed: int = 0,
+    cache_dir: Path | None = None,
+    width: int = 900,
+    vertical: bool | None = None,
 ) -> SynthPage:
-    """2×2 panels with one or two plain bubbles each (ellipse/roundrect, tails)."""
+    """2×2 panels with one or two plain bubbles each (ellipse/roundrect, tails).
+
+    ``vertical=False`` renders Japanese horizontally (read comic_ltr)."""
     height = int(width * 1.4)
-    order = _default_order(lang)
+    is_vertical = (lang == "ja") if vertical is None else vertical
+    order = (
+        _default_order(lang)
+        if is_vertical == (lang == "ja")
+        else ("manga_rtl" if is_vertical else "comic_ltr")
+    )
     b = PageBuilder(
         width,
         height,
@@ -487,7 +502,7 @@ def basic_page(
         fonts=Fonts(cache_dir),
         lang=lang,
         reading_order=order,
-        name=f"basic_{lang}_{seed}",
+        name=f"basic_{lang}{'' if vertical is None else ('_v' if is_vertical else '_h')}_{seed}",
     )
     grid = _panels(width, height, 2, 2)
     texts = list(TEXTS[lang])
@@ -500,14 +515,15 @@ def basic_page(
         for area in halves:
             text = texts.pop()
             size = b.rng.choice([26, 28, 32])
-            vertical = lang == "ja"
-            dims = b.bubble_box_for(text, size, vertical, scale=1.6 if vertical else 1.35)
+            dims = b.bubble_box_for(text, size, is_vertical, scale=1.6 if is_vertical else 1.35)
             spot = b.place(dims, area)
             if spot is None:
                 continue
             shape: Shape = b.rng.choice(["ellipse", "roundrect"])
             tail = (int(spot.center[0]) + b.rng.randint(-20, 20), min(spot.y1 + 30, area.y1 - 6))
-            b.add_region("bubble", text, spot, shape=shape, vertical=vertical, size=size, tail=tail)
+            b.add_region(
+                "bubble", text, spot, shape=shape, vertical=is_vertical, size=size, tail=tail
+            )
     return b.build()
 
 
@@ -729,6 +745,46 @@ def adversarial_gutter_page(seed: int = 0, cache_dir: Path | None = None) -> Syn
     return b.build()
 
 
+def two_block_bubble_page(seed: int = 0, cache_dir: Path | None = None) -> SynthPage:
+    """One large bubble holding two separated text blocks (must become one MERGED region)."""
+    width, height = 700, 700
+    b = PageBuilder(
+        width,
+        height,
+        seed=seed,
+        fonts=Fonts(cache_dir),
+        lang="ja",
+        reading_order="manga_rtl",
+        name=f"two_block_{seed}",
+    )
+    b.panel(BBox(20, 20, width - 20, height - 20))
+    box = BBox(120, 120, 580, 580)
+    mask = b.shape_mask("ellipse", box)
+    b.draw_bubble(mask, (255, 255, 255))
+    ink_a = b.render_text("待ってくれ", 30, True)
+    ink_b = b.render_text("行こう", 30, True)
+    ta, fa = b._stamp_text(ink_a, (420, 330), (0, 0, 0))
+    tb, fb = b._stamp_text(ink_b, (270, 360), (0, 0, 0))
+    interior = cv2.erode(mask.astype(np.uint8), np.ones((7, 7), np.uint8)) > 0
+    full = fa | fb
+    b.regions.append(
+        GtRegion(
+            id="r0",
+            type="bubble",
+            lang="ja",
+            text="待ってくれ行こう",
+            vertical=True,
+            text_bbox=ta.union(tb),
+            text_mask=CropMask.from_full(full) or CropMask(ta, np.zeros((1, 1), bool)),
+            reading_order=0,
+            shape="ellipse",
+            bubble_mask=CropMask.from_full(interior),
+        )
+    )
+    b.tags.append("merge")
+    return b.build()
+
+
 DEMO_TEXTS = ["你真的要去吗", "等一下", "谢谢你"]
 DEMO_TRANSLATIONS = {
     "你真的要去吗": "هل ستذهب حقًا؟",
@@ -763,6 +819,8 @@ def demo_page(cache_dir: Path | None = None) -> SynthPage:
         size=34,
         tail=(220, 380),
     )
+    # Regions are added in reading order (comic_ltr: left panel top→bottom, then right).
+    b.add_region("narration", DEMO_TEXTS[2], BBox(100, 520, 360, 620), vertical=False, size=30)
     b.add_region(
         "bubble",
         DEMO_TEXTS[1],
@@ -772,5 +830,4 @@ def demo_page(cache_dir: Path | None = None) -> SynthPage:
         size=34,
         tail=(640, 360),
     )
-    b.add_region("narration", DEMO_TEXTS[2], BBox(100, 520, 360, 620), vertical=False, size=30)
     return b.build()

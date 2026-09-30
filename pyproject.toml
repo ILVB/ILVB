@@ -112,6 +112,13 @@ mypy_path = "src"
 packages = ["manga_ar"]
 
 [[tool.mypy.overrides]]
+# OpenCV 5 ships stubs whose Mat|ndarray unions make every call site noisy; treat cv2 as
+# untyped and keep our own function signatures strict.
+module = ["cv2", "cv2.*"]
+follow_imports = "skip"
+follow_imports_for_stubs = true
+
+[[tool.mypy.overrides]]
 module = ["manga_ar.ui.*", "manga_ar.ocr.manga_ocr_engine", "manga_ar.ocr.paddle_engine", "manga_ar.ocr.easyocr_engine", "manga_ar.ocr.rapid_engine", "manga_ar.inpaint.lama", "manga_ar.translate.local_mt", "manga_ar.detect.comic_text_detector"]
 # Thin adapters over untyped third-party ML libraries.
 disallow_untyped_calls = false

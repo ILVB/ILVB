@@ -136,6 +136,67 @@ rejected as unusable pages. Pillow's default pixel limit (~179 MP) is the
 decompression-bomb guard. Bad PNG CRCs count as corruption: `strict` raises, `lenient`
 decodes best-effort with a warning.
 
+## Phase 2
+
+**D-011 — Default detector is the classical one; ML detectors are adapters.** Seeds
+10–11, ja/ko/zh basic + variety pages, P/R at IoU 0.5:
+| detector | precision | recall |
+|---|---|---|
+| classical | 0.977 → 1.000 after the polarity fix | 0.977 → 1.000 after the polarity fix |
+| rapid (PP-OCR DB) | 0.953 | 0.953 |
+| craft (EasyOCR) | 0.909 | 0.930 |
+| ctd (GPL-3.0 weights) | 1.000 | 0.860 (block boxes looser than GT) |
+`detect.detector: auto` → classical: no download, best score. `rapid`, `craft` and `ctd`
+are selectable and fall back to classical if unavailable.
+
+**D-012 — Classical detector design (calibrated on seeds 0–2, verified on 10–15, 20–21).**
+- Glyph candidates are connected components passing size, fill and contrasting-surround
+  tests.
+- Thin diagonal strokes are hatching. Axis-aligned thin strokes (一, ー) are kept.
+- Grouping follows the enclosing light region, then proximity.
+- Polarity conflicts are settled by a ring-uniformity test with symmetric
+  size-comparability. This handles white text in black bubbles and glyph counters.
+- Nested blocks inside large-glyph blocks are absorbed, and small groups on textured
+  backgrounds are rejected.
+- Orientation: each glyph's nearest neighbour lies along the reading direction. Glyphs
+  are assembled from pieces (≤ 1.15 glyph, square-ish) before voting.
+- Furigana are split off columns with a fine gap, and must be narrow and made of small
+  glyphs.
+
+Held-out result: P = R = 1.000 (seeds 10–15), orientation ≥ 97 %.
+
+**D-013 — Bubble segmentation.**
+- Floating-range flood fill (±5) from seeds around the text, with every block's glyphs
+  painted out first.
+- Morphological opening (r ≈ ¼ glyph) severs tails.
+- The ROI retries at 2.5×, 4.5× and 8× for large bubbles.
+- Leak tests: ROI/page border, area > 20 × the text of all blocks inside, > 35 % of the
+  page, solidity < 0.75. A leaked bright uniform bubble falls back to an ellipse
+  (LEAK_FALLBACK); anything else becomes free_text.
+- Narration = rectangularity ≥ 0.97 plus filled corners, measured before opening.
+- Ground-truth bubble masks are the fillable interior (outline excluded), since that is
+  what later stages use.
+
+Held-out: mean IoU 0.991, min 0.95, types 161/161.
+
+**D-014 — Reading order.** Panels come from recursive cuts along blank gutters in the page
+image. Inside a panel, an XY-cut prefers horizontal cuts, and columns read right→left for
+manga. `webtoon_ttb` = panels (full-width bands) top→bottom, then regions by y. Result:
+28/28 pages exact.
+
+**D-015 — OCR routing, as available here.** ja: manga_ocr (unavailable, W-001) →
+EasyOCR `ja` with vertical reflow. ko: EasyOCR `ko`. zh: RapidOCR → EasyOCR `ch_sim`.
+Engines recognise single lines. Vertical columns are reflowed: blank-row runs are merged
+by gap-aware stroke attachment, so こ and う stay whole, and over-tall cells are split.
+Held-out CER (seeds 10–12): ja-V 0.0 %, ja-H 0.0 %, ko 5.8 %, zh 0.0 %. The ko residue is
+the EasyOCR recogniser confusing 었/없 and 줘/쥐 in Noto Sans KR; upscaling (×1.5–3) does
+not change it.
+
+**D-016 — Language detection.** Each language's first engine reads up to 4 of the largest
+regions. Score = confidence × script consistency × (1 if the script vote agrees, else
+0.5), plus a 0.15 vertical-text prior for ja. The pipeline aggregates votes per document
+(folder/archive).
+
 ## Waivers
 
 **W-001 (SP-B / P2 OCR JA via manga-ocr).** Reason: huggingface.co blocked. Risk: vertical
