@@ -70,3 +70,41 @@ Decisions:
 
 Open risk: `typeset_gt` rebuilds v0.1.0 `Region`s from ground truth; the type mapping
 (thought→bubble, sign/credit→free_text) is recorded in `benchmarks/adapters/v010.py`.
+
+## Step 0.3.2 — synthetic generator — commits `47a7bfc`, `a358514`, `56bc9f4`
+```
+$ pytest tests/bench/test_generator.py
+13 passed in 7.10s   (determinism, GT consistency per category, kinsoku, split disjointness)
+```
+Decisions:
+- The generator is self-contained (never imports `manga_ar`).
+- Fonts: 9 OFL fonts, pinned by SHA-256.
+- Text bank: 96 parallel meanings × ja/zh/ko/en. Meaning-level splits by keyed hash
+  rank (32/32/32).
+- Visual inspection of dev pages found CJK lines starting with 。; fixed with kinsoku
+  wrapping before freezing.
+
+## Step 0.3.4 — SILVER references — commit `25349c8` (done before 0.3.3)
+- Ordering deviation from the plan: references are part of the ground-truth files that
+  0.3.3 hashes, so they had to exist first.
+- ADR-0002: references authored by the operating model, which is not a system under
+  test; always labelled `SILVER-REFERENCE, comparative only`.
+
+## Step 0.3.3 — dataset + manifest + sealed test — commit `0a9d98c`
+```
+$ python -m benchmarks.generators.build --write-manifest
+synthetic_v1: (pages, regions) per split {'dev': (40, 249), 'val': (40, 238), 'test': (50, 300)}; total 787
+$ python -m benchmarks.generators.build          # second build → identical manifest (exit 0)
+$ python -m benchmarks.generators.build --check
+OK
+```
+- Test split sha256 (aggregate) recorded in `benchmarks/manifests/synthetic_v1.test.sha256`.
+- Test files were written and hashed without being read back or printed.
+- `load_split("test")` requires the gate's `SealedCapability`; negative controls are
+  tested.
+
+## Step 0.3.5 — gold ingestion — commit `03435e3`
+```
+$ pytest tests/tools/test_ingest_gold.py → 3 passed
+$ python tools/ingest_gold.py --check → exit 1 (gold data not delivered yet)
+```
