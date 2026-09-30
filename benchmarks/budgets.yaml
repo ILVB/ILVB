@@ -1,0 +1,23 @@
+# Performance budgets for G-PERF-1 (step 0.6, ADR-0003).
+# IMMUTABLE after this commit (PD-3): only the human may change a value, in writing;
+# tools/audit_phase_order.py fails on any later commit touching this file.
+# Units: seconds per page per stage (p50/p95 over pages), MiB for memory.
+schema: 1
+host:  # the gate host class these ceilings apply to (benchmarks/env.json)
+  cpu_logical_cores: 4
+  ram_gb: 15.72
+  gpu: none
+baseline:
+  file: benchmarks/results/baseline_v0.1.0.json
+  sha256: 8ab912fecf19ade47a709d663be195db2c193a3d2309c2180174d2cb0ab6a5f1
+  splits: [dev, val]
+  pages: 80
+stages:
+  detect: {baseline_p50: 0.292, baseline_p95: 0.763, p50: 1.29, p95: 1.76}
+  ocr: {baseline_p50: 0.200, baseline_p95: 0.724, p50: 1.2, p95: 1.72}
+  inpaint: {baseline_p50: 0.025, baseline_p95: 3.138, p50: 1.03, p95: 6.28}
+  typeset: {baseline_p50: 0.088, baseline_p95: 0.211, p50: 1.09, p95: 1.21}
+  translate: {baseline_p50: 0.000, baseline_p95: 0.001, p50: 20.0, p95: 45.0}  # absolute: offline baseline has no provider
+memory:
+  peak_rss_mb: {baseline: 1451.8, ceiling: 8192}
+  peak_vram_mb: {baseline: null, ceiling: null}  # no GPU on the gate host: not measurable
