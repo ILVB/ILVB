@@ -34,6 +34,8 @@ SOURCE_LANGS = {"ja", "ko", "zh"}  # v0.1.0 users pick "auto" for anything else 
 class Engine:
     """Stage entry points over one configured v0.1.0 pipeline (models load lazily)."""
 
+    source_langs = SOURCE_LANGS  # languages the implementation can be told explicitly
+
     def __init__(self, overrides: dict[str, Any], tm_pairs: dict[str, str] | None = None) -> None:
         import manga_ar
         from manga_ar.config import load_config
@@ -65,7 +67,7 @@ class Engine:
             regions = stages.segmenter.segment(rgb, blocks, page_id)
             active = [r for r in regions if r.type != RegionType.SFX]
             sfx = [r for r in regions if r.type == RegionType.SFX]
-            if lang not in SOURCE_LANGS:  # what `--source auto` does in v0.1.0 (one page)
+            if lang not in self.source_langs:  # what `--source auto` does (one page)
                 found = stages.ocr.detect_language(rgb, active)[0] if active else None
                 lang = found or "ja"
             mode = self.cfg.input.reading_order
@@ -234,7 +236,7 @@ class Engine:
 
         self._seed()
         # v0.1.0 cannot declare other sources; its undetermined-language default is ja.
-        src = gt.lang if gt.lang in SOURCE_LANGS else "ja"
+        src = gt.lang if gt.lang in self.source_langs else "ja"
         regions = []
         for g in sorted(gt.regions, key=lambda r: r.reading_order):
             if g.type == "sfx":

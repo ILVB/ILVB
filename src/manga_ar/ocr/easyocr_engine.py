@@ -1,4 +1,4 @@
-"""EasyOCR adapter (ja / ko / zh). Weights come from GitHub releases on first use."""
+"""EasyOCR adapter (ja / ko / zh / en). Weights come from GitHub releases on first use."""
 
 from __future__ import annotations
 
@@ -17,13 +17,23 @@ from manga_ar.ocr.base import LineResult, RgbArray
 log = get_logger(__name__)
 
 # EasyOCR language groups must be combined legally (never ja+ko+ch together).
-LANG_GROUPS: dict[str, list[str]] = {"ja": ["ja", "en"], "ko": ["ko", "en"], "zh": ["ch_sim", "en"]}
-_MODEL_FILES = {"ja": "japanese_g2.pth", "ko": "korean_g2.pth", "zh": "zh_sim_g2.pth"}
+LANG_GROUPS: dict[str, list[str]] = {
+    "ja": ["ja", "en"],
+    "ko": ["ko", "en"],
+    "zh": ["ch_sim", "en"],
+    "en": ["en"],
+}
+_MODEL_FILES = {
+    "ja": "japanese_g2.pth",
+    "ko": "korean_g2.pth",
+    "zh": "zh_sim_g2.pth",
+    "en": "english_g2.pth",
+}
 
 
 class EasyOcrEngine:
     name = "easyocr"
-    languages = frozenset({"ja", "ko", "zh"})
+    languages = frozenset({"ja", "ko", "zh", "en"})
     reads_blocks = False
 
     def __init__(self, manager: ModelManager, device: str = "cpu", offline: bool = False) -> None:
@@ -85,7 +95,7 @@ class EasyOcrEngine:
 
 
 def download_easyocr_models(
-    manager: ModelManager, languages: tuple[str, ...] = ("ja", "ko", "zh")
+    manager: ModelManager, languages: tuple[str, ...] = ("ja", "ko", "zh", "en")
 ) -> None:
     """Fetch CRAFT + recognisers for ``languages`` into the MangaAR cache."""
     import easyocr

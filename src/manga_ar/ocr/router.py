@@ -105,7 +105,7 @@ class OcrRouter:
         results = [
             engine.recognize_line(img, lang) for img in self._line_images(page, region, upscale)
         ]
-        sep = " " if lang == "ko" else ""
+        sep = " " if lang in ("ko", "en") else ""  # line breaks are word breaks
         text = sep.join(r.text for r in results if r.text)
         confs = [r.confidence for r in results if r.confidence is not None]
         return LineResult(text, float(np.mean(confs)) if confs else None)

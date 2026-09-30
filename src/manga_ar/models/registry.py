@@ -53,7 +53,7 @@ REGISTRY: dict[str, ModelSpec] = {
         ModelSpec(
             name="easyocr",
             kind="easyocr",
-            description="EasyOCR CRAFT detector + ja/ko/zh recognisers (GitHub releases, MD5 "
+            description="EasyOCR CRAFT detector + ja/ko/zh/en recognisers (GitHub releases, MD5 "
             "verified by easyocr)",
             license="Apache-2.0",
             filename="easyocr",

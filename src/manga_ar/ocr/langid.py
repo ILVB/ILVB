@@ -62,5 +62,5 @@ def script_consistency(text: str, lang: str) -> float:
     letters = sum(v for k, v in counts.items() if k not in {"digit"})
     if letters == 0:
         return 0.0
-    expected = {"ja": {"kana", "han"}, "zh": {"han"}, "ko": {"hangul"}}[lang]
+    expected = {"ja": {"kana", "han"}, "zh": {"han"}, "ko": {"hangul"}, "en": {"latin"}}[lang]
     return sum(counts[s] for s in expected) / letters

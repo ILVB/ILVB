@@ -57,7 +57,7 @@ def build_parser() -> argparse.ArgumentParser:
     _common(p)
     p.add_argument("inputs", nargs="+", type=Path, help="images, folders or .cbz/.zip files")
     p.add_argument("-o", "--output", type=Path, required=True, help="output directory")
-    p.add_argument("--source", choices=["auto", "ja", "ko", "zh"], default=None)
+    p.add_argument("--source", choices=["auto", "ja", "ko", "zh", "en"], default=None)
     p.add_argument("--preset", choices=["fast", "balanced", "quality"], default=None)
     p.add_argument(
         "--reading-order", choices=["auto", "manga_rtl", "comic_ltr", "webtoon_ttb"], default=None

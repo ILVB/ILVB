@@ -26,7 +26,7 @@ from manga_ar import __version__
 from manga_ar.errors import ConfigError
 
 Preset = Literal["fast", "balanced", "quality"]
-Lang = Literal["auto", "ja", "ko", "zh"]
+Lang = Literal["auto", "ja", "ko", "zh", "en"]  # en: v0.2.0 (Phase 2 Edu-Reader source)
 ReadingOrder = Literal["auto", "manga_rtl", "comic_ltr", "webtoon_ttb"]
 # A v0.2.0 upgrade flag: ``auto`` follows engine.profile (off for legacy, on for v2);
 # ``on``/``off`` pin it for ablations.
@@ -139,7 +139,7 @@ class OcrConfig:
     def __post_init__(self) -> None:
         known = {"manga_ocr", "easyocr", "rapid", "paddle"}
         for lang, names in self.engines.items():
-            _check(lang in {"ja", "ko", "zh"}, f"ocr.engines: unknown language {lang!r}")
+            _check(lang in {"ja", "ko", "zh", "en"}, f"ocr.engines: unknown language {lang!r}")
             bad = set(names) - known
             _check(not bad, f"ocr.engines.{lang}: unknown engines {sorted(bad)}")
         _check(0 <= self.padding <= 0.5, "ocr.padding must be in [0, 0.5]")

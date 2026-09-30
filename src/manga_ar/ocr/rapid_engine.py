@@ -14,7 +14,9 @@ from manga_ar.ocr.base import LineResult, RgbArray
 
 class RapidOcrEngine:
     name = "rapid"
-    languages = frozenset({"zh"})  # bundled model is Chinese; kana/Hangul are not covered
+    # The bundled PP-OCR recogniser is Chinese; its dictionary also covers Latin letters and
+    # digits (English route, v0.2.0). Kana and Hangul are not covered.
+    languages = frozenset({"zh", "en"})
     reads_blocks = False
 
     def __init__(self, num_threads: int = 0) -> None:

@@ -61,3 +61,24 @@ enters on its own. The thresholds were set on dev and confirmed on val.
   (stylized 0.72, text_on_art 0.36, tiny_text 0.28 on val). Steps 1.0.4 and 1.0.5 target it.
 - tiny_text on dev got worse (0.158 → 0.205; DB misses some tiny lines). The category is not
   constrained by G-OCR-1, and it improved on val. It is watched at 1.0.4 (upscaling).
+
+## Update — recognizer selection per script (step 1.0.5)
+v0.1.0 has no English route. English pages went through its `auto` path (a ja/zh/ko engine
+plus Latin pass-through), and recognised lines were joined without spaces except in Korean.
+v0.2.0 adds `en` as an explicit source with `ocr.engines.en: [rapid, easyocr]` (the bundled
+PP-OCR recogniser reads Latin; EasyOCR `english_g2`, Apache-2.0, fetched from GitHub
+releases, MD5-checked by easyocr). English lines are joined with spaces, and Latin text is
+not passed through when English is the source. Harness: the candidate adapter passes `en`
+explicitly only under the `v2` profile, so `legacy` stays byte-identical.
+
+| dev, v2 profile (db_primary) | CER | WER | en CER / WER |
+|---|---|---|---|
+| no English route | 0.228 | 1.003 | 0.261 / 1.00 |
+| en: rapid → easyocr (adopted) | 0.182 | 0.491 | 0.149 / 0.20 |
+| en: easyocr → rapid | 0.209 | 0.648 | 0.215 / 0.44 |
+
+Val, frozen v0.1.0 → v2 profile: CER 0.243 → **0.129** (−47 % relative; G-OCR-1 needs ≥
+15 %), WER 0.821 → 0.292, detection F1 0.850 → 0.992. No category is worse: vertical text
+0.047 → 0.047, screentone −21.9 points, stylized −25.5, text_on_art −40.1, low-contrast −5.3,
+standard bubbles −4.1. The remaining weak spots are stylized (0.50), tiny_text (0.26) and
+text_on_art (0.23). Korean CER is 0.21.

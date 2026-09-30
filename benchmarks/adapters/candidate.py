@@ -1,13 +1,21 @@
 """Adapter for the current source tree (v0.2.0 candidate).
 
-Until Phase 1 changes the public pipeline API, the candidate exposes the same stage
-entry points as v0.1.0, so the v0.1.0 adapter implementation applies unchanged. When the
-API diverges, the candidate-specific implementation lives here (the baseline adapter in
-`v010.py` never changes).
+The candidate keeps v0.1.0's stage entry points, so it reuses the v0.1.0 adapter. The
+one difference so far: under ``engine.profile: v2`` English is a source language the
+pipeline can be told explicitly (the English OCR route, step 1.0.5). Under ``legacy`` it
+goes through v0.1.0's ``auto`` path, as the frozen baseline did, so that legacy runs stay
+byte-identical.
 """
 
 from __future__ import annotations
 
-from benchmarks.adapters.v010 import Engine
+from typing import Any
 
-__all__ = ["Engine"]
+from benchmarks.adapters import v010
+
+
+class Engine(v010.Engine):
+    def __init__(self, overrides: dict[str, Any], tm_pairs: dict[str, str] | None = None) -> None:
+        super().__init__(overrides, tm_pairs)
+        if self.cfg.engine.profile == "v2":
+            self.source_langs = v010.SOURCE_LANGS | {"en"}

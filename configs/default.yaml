@@ -24,7 +24,7 @@ runtime:
   num_threads: 0          # 0: library default; >0 caps torch/onnxruntime threads
 
 input:
-  source_lang: auto       # auto | ja | ko | zh
+  source_lang: auto       # auto | ja | ko | zh | en (en: explicit only)
   reading_order: auto     # auto | manga_rtl | comic_ltr | webtoon_ttb
   max_pixels: 178956970   # decompression-bomb guard (≈179 MP, Pillow's default)
   min_side: 16            # smaller images are rejected (1×1 etc.)
@@ -62,6 +62,7 @@ ocr:
     ja: [manga_ocr, easyocr, rapid, paddle]
     ko: [easyocr, paddle]
     zh: [rapid, easyocr, paddle]
+    en: [rapid, easyocr]  # v0.2.0: English/Latin route (PP-OCR rec reads Latin)
   padding: 0.10           # crop padding as a fraction of the block size
   min_confidence: 0.35    # below this => LOW_CONFIDENCE and retry with the next engine
   max_upscale: 3.0        # small crops are upscaled (Lanczos) up to this factor

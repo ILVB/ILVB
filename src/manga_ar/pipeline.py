@@ -389,7 +389,14 @@ class Pipeline:
                 doc.warnings.append(f"{region.id}: OCR failed ({type(exc).__name__})")
                 continue
             text = region.ocr.text
-            if self.cfg.ocr.pass_through_latin and text and is_passthrough(text):
+            # Latin text is left as-is in CJK pages, but it is the content of English pages.
+            latin_is_content = region_lang == "en"
+            if (
+                self.cfg.ocr.pass_through_latin
+                and text
+                and not latin_is_content
+                and is_passthrough(text)
+            ):
                 region.flag(Flag.PASS_THROUGH)
 
     def _inpaint(
