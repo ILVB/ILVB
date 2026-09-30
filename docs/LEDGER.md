@@ -37,3 +37,36 @@ Open risks:
   (huggingface.co blocked), so G-TR cannot be measured without human action.
 - LPIPS backbones are unobtainable here (download.pytorch.org blocked).
 - The v0.1.0 translation baseline is TM-only on this host (ADR-0001 #9).
+
+## Step 0.1.2 — Phase 1 plan — commits `8af685e` (templates), `e86ce60` (plan)
+- Gold-data templates + JSON Schema in `benchmarks/data/templates/`; consolidated data
+  request and six human decisions sent once (chat message, 2026-09-30).
+- `docs/PLAN_PHASE1.md` (109 lines) mirrored as session tasks #13–#19.
+
+## Step 0.2.1 — baseline worktree — commit `98f28bd`
+```
+$ python tools/baseline_worktree.py
+baseline OK: /home/user/ILVB/.baseline at v0.1.0 (7ac67181e3aa)
+$ git worktree list
+/home/user/ILVB/.baseline  7ac6718 (detached HEAD)
+$ pytest tests/tools → 4 passed (incl. negative controls: moved tag, dirty/moved worktree)
+```
+Decision: the lock is JSON (`benchmarks/baseline.lock.json`), because `tomllib` does not
+exist on Python 3.10, which the project still supports.
+
+## Step 0.2.2 — common adapter — commits `0b0bfd3`, `2227311`
+```
+$ pytest -m integration tests/bench/test_adapters_real.py
+1 passed in 6.42s
+$ pytest -q
+305 passed, 19 deselected in 29.95s
+```
+Decisions:
+- Stage-level API (`detect_ocr`, `erase`, `typeset_gt`, `translate_gt`). The harness
+  gives both versions identical inputs, including ground-truth geometry and identical
+  Arabic strings for typesetting, and the known page language (`--source`).
+- One worker subprocess per implementation; `.baseline/src` is placed first on
+  PYTHONPATH and verified through `code_origin`.
+
+Open risk: `typeset_gt` rebuilds v0.1.0 `Region`s from ground truth; the type mapping
+(thought→bubble, sign/credit→free_text) is recorded in `benchmarks/adapters/v010.py`.
