@@ -44,11 +44,23 @@ def score_ocr(gt: GtPage, result: PageResult) -> dict[str, Any]:
             w = word_edits(g.text, hyp)
             row |= {"word_edits": w.edits, "words": w.length}
         ocr.append(row)
+    shape = (gt.height, gt.width)
+    mask_ious = []
+    for gi, pi, _ in pairs:
+        g, pred = gt.regions[gi], preds[pi]
+        if g.type == "sfx":
+            continue
+        truth = rle.decode(g.text_mask, shape)
+        found = rle.decode(pred.text_mask, shape) if pred.text_mask is not None else None
+        union = int((truth | found).sum()) if found is not None else int(truth.sum())
+        inter = int((truth & found).sum()) if found is not None else 0
+        mask_ious.append(inter / union if union else 0.0)
     order_pairs = [(gt.regions[gi].reading_order, preds[pi].reading_order)
                    for gi, pi, _ in pairs if gt.regions[gi].type != "sfx"]  # fmt: skip
     hits, total = order_hits(order_pairs)
     return {"tp": len(pairs), "gt": len(gt.regions), "pred": len(preds),
-            "order_hits": hits, "order_total": total, "ocr": ocr}  # fmt: skip
+            "order_hits": hits, "order_total": total, "mask_iou": mask_ious,
+            "ocr": ocr}  # fmt: skip
 
 
 def score_inpaint(
@@ -116,8 +128,8 @@ def score_translation(gt: GtPage, result: PageResult) -> list[dict[str, str]]:
 
 def score_page(gt: GtPage, category: str, results: dict[str, PageResult], raw_dir: Path,
                original: U8, clean: U8) -> dict[str, Any]:  # fmt: skip
-    """All metric groups for one page. A failed mode is scored as a page left untouched
-    (no detections, nothing erased, nothing typeset or translated), never skipped."""
+    """Metric groups for the modes that were run. A failed mode is scored as a page left
+    untouched (no detections, nothing erased, nothing typeset or translated), never skipped."""
     row: dict[str, Any] = {"page_id": gt.page_id, "category": category, "lang": gt.lang,
                            "errors": {}, "stages": {}}  # fmt: skip
     for mode, res in results.items():
@@ -125,15 +137,17 @@ def score_page(gt: GtPage, category: str, results: dict[str, PageResult], raw_di
         if res.errors:
             row["errors"][mode] = res.errors[0]
     empty = PageResult(page_id=gt.page_id, version="", mode="erase")
-    erase = results.get("erase")
-    ok = erase is not None and not erase.errors and erase.erased_image is not None
-    erase = erase if ok and erase is not None else empty
-    erased = load_rgb(raw_dir / erase.erased_image) if erase.erased_image else original
-    row["detection"] = score_ocr(gt, erase)
-    row["inpaint"] = score_inpaint(gt, erase, original, erased, clean)
-    ts = results.get("typeset_gt")
-    row["typeset"] = score_typeset(gt, ts if ts is not None and not ts.errors else empty,
-                                   set(typeset_texts(gt)))  # fmt: skip
-    tr = results.get("translate_gt")
-    row["translation"] = score_translation(gt, tr if tr is not None and not tr.errors else empty)
+    if "erase" in results:  # modes that were not run at all are left out, not failed
+        erase = results["erase"]
+        ok = not erase.errors and erase.erased_image is not None
+        erase = erase if ok else empty
+        erased = load_rgb(raw_dir / erase.erased_image) if erase.erased_image else original
+        row["detection"] = score_ocr(gt, erase)
+        row["inpaint"] = score_inpaint(gt, erase, original, erased, clean)
+    if "typeset_gt" in results:
+        ts = results["typeset_gt"]
+        row["typeset"] = score_typeset(gt, ts if not ts.errors else empty, set(typeset_texts(gt)))
+    if "translate_gt" in results:
+        tr = results["translate_gt"]
+        row["translation"] = score_translation(gt, tr if not tr.errors else empty)
     return row

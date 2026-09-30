@@ -168,3 +168,19 @@ def test_ocr_by_category_groups(tmp_path: Path) -> None:
     cats = ocr_by_category([row])
     assert cats["flat_white"]["cer"] == pytest.approx(1 / 5)
     assert cats["G-OCR-1:standard_bubbles"]["pages"] == 1 and "G-OCR-1:screentone" not in cats
+
+
+def test_modes_that_did_not_run_are_left_out(tmp_path: Path) -> None:
+    original, clean = _images()
+    gt = _page()
+    only = {"erase": _results(tmp_path, original, clean)["erase"]}
+    row = score_page(gt, "flat_white", only, tmp_path, original, clean)
+    assert "detection" in row and "typeset" not in row and "translation" not in row
+    s = summarize([row], {}, "silver")
+    assert "ocr" in s and "typeset" not in s and "translation" not in s
+    assert s["ocr"]["mask_iou"] == 0.0  # the prediction carries no text mask
+    erase = only["erase"]
+    pred = erase.regions[0].model_copy(update={"text_mask": rle.encode(_mask(10, 10, 30, 20))})
+    masked = {"erase": erase.model_copy(update={"regions": [pred]})}
+    row = score_page(gt, "flat_white", masked, tmp_path, original, clean)
+    assert row["detection"]["mask_iou"] == [1.0]  # identical to the ground-truth mask

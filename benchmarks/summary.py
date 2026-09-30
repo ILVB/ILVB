@@ -60,6 +60,7 @@ def ocr_summary(rows: Sequence[Row]) -> dict[str, Any]:
         "cer_by_lang": {k: cer(v) for k, v in sorted(by_lang.items())},
         "wer": _ratio(sum(r["word_edits"] for r in words), sum(r["words"] for r in words)),
         "precision": det.precision, "recall": det.recall, "f1": det.f1,
+        "mask_iou": _mean([v for row in rows for v in row["detection"].get("mask_iou", [])]),
         "order_accuracy": _ratio(sum(r["detection"]["order_hits"] for r in rows),
                                  sum(r["detection"]["order_total"] for r in rows)),
     }  # fmt: skip
@@ -169,11 +170,17 @@ def summarize(rows: Sequence[Row], refs: Refs, reference_kind: str) -> dict[str,
     for row in rows:
         for mode in row["errors"]:
             errors[mode] += 1
-    return {
-        "pages": len(rows), "errors": dict(sorted(errors.items())),
-        "ocr": ocr_summary(rows), "ocr_by_category": ocr_by_category(rows),
-        "inpaint": inpaint_summary(rows),
-        "typeset": typeset_summary(rows),
-        "translation": translation_summary(rows, refs, reference_kind),
-        "perf": perf_summary(rows),
-    }  # fmt: skip
+
+    def ran(key: str) -> bool:
+        return bool(rows) and all(key in row for row in rows)
+
+    out: dict[str, Any] = {"pages": len(rows), "errors": dict(sorted(errors.items()))}
+    if ran("detection"):
+        out |= {"ocr": ocr_summary(rows), "ocr_by_category": ocr_by_category(rows),
+                "inpaint": inpaint_summary(rows)}  # fmt: skip
+    if ran("typeset"):
+        out["typeset"] = typeset_summary(rows)
+    if ran("translation"):
+        out["translation"] = translation_summary(rows, refs, reference_kind)
+    out["perf"] = perf_summary(rows)
+    return out

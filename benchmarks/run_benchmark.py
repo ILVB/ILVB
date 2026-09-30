@@ -86,9 +86,10 @@ def content_digests(raw: Path, results: list[PageResult]) -> dict[str, str]:
 def run(
     version: str, split: str, *, capability: SealedCapability | None = None,
     dataset: str = "synthetic_v1", profile: str = "v010-offline", limit: int | None = None,
-    raw_root: Path = RAW_ROOT,
+    raw_root: Path = RAW_ROOT, overrides: dict[str, Any] | None = None,
+    modes: tuple[str, ...] = MODES, tag: str = "",
 ) -> dict[str, Any]:  # fmt: skip
-    config = PROFILES[profile]
+    config = {**PROFILES[profile], **(overrides or {})}
     if version == "baseline" and any(k.startswith("engine.") for k in config):
         raise ValueError(f"profile {profile!r} sets engine.* keys that v0.1.0 does not have")
     items = load_split(split, dataset, capability)[:limit]
@@ -96,8 +97,8 @@ def run(
     jobs = [{"mode": mode, "page_id": it.page_id, "lang": it.lang, "image": str(it.image),
              "clean": str(it.clean), "gt": str(it.gt_path), "config": config,
              "texts": typeset_texts(gts[it.page_id]) if mode == "typeset_gt" else {}}
-            for it in items for mode in MODES]  # fmt: skip
-    raw = raw_root / version / dataset / split
+            for it in items for mode in modes]  # fmt: skip
+    raw = raw_root / (f"{version}-{tag}" if tag else version) / dataset / split
     results = run_jobs(version, jobs, raw)
     by_page: dict[str, dict[str, PageResult]] = defaultdict(dict)
     for res in results:
@@ -110,7 +111,8 @@ def run(
     origin = Path(results[0].code_origin) if results and results[0].code_origin else None
     return {
         "schema": 1, "version": version, "dataset": dataset, "split": split,
-        "profile": profile, "config": config, "limit": limit, "code": code_revision(version),
+        "profile": profile, "config": config, "limit": limit, "modes": list(modes),
+        "code": code_revision(version),
         "code_origin": str(origin.relative_to(ROOT)) if origin and origin.is_relative_to(ROOT)
         else str(origin),
         "raw_sha256": raw_digest(raw, results),
@@ -126,7 +128,20 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--profile", default="v010-offline", choices=sorted(PROFILES))
     ap.add_argument("--limit", type=int, default=None, help="first N pages (smoke runs)")
     ap.add_argument("--out", type=Path, default=None)
+    ap.add_argument(
+        "--set",
+        action="append",
+        default=[],
+        metavar="KEY=JSON",
+        help="extra config override for dev/val experiments (repeatable)",
+    )
+    ap.add_argument("--modes", default=",".join(MODES), help="comma-separated subset of modes")
+    ap.add_argument("--tag", default="", help="separate raw-output directory for experiments")
     args = ap.parse_args(argv)
+    overrides = {k: json.loads(v) for k, _, v in (item.partition("=") for item in args.set)}
+    modes = tuple(m for m in args.modes.split(",") if m)
+    if set(modes) - set(MODES):
+        ap.error(f"unknown modes {sorted(set(modes) - set(MODES))}")
     if args.split == "test":
         sys.stderr.write(
             "the test split is sealed; only tools/validate_phase1.py evaluates it "
@@ -134,8 +149,9 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 2
     result = run(args.version, args.split, dataset=args.dataset, profile=args.profile,
-                 limit=args.limit)  # fmt: skip
-    out = args.out or RAW_ROOT / f"{args.version}.{args.dataset}.{args.split}.json"
+                 limit=args.limit, overrides=overrides, modes=modes, tag=args.tag)  # fmt: skip
+    name = f"{args.version}-{args.tag}" if args.tag else args.version
+    out = args.out or RAW_ROOT / f"{name}.{args.dataset}.{args.split}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(result, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     sys.stdout.write(json.dumps(result["summary"], ensure_ascii=False, indent=1) + "\n")
