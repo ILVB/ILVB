@@ -51,6 +51,13 @@ _HASH_EXCLUDED: dict[str, set[str]] = {
 
 
 @dataclass(frozen=True)
+class EngineConfig:
+    """v0.2.0 feature profile: ``legacy`` reproduces v0.1.0; ``v2`` enables the upgrades."""
+
+    profile: Literal["legacy", "v2"]
+
+
+@dataclass(frozen=True)
 class RuntimeConfig:
     device: Literal["auto", "cpu", "cuda", "mps"]
     offline: bool
@@ -255,6 +262,7 @@ class AppConfig:
 
     schema: int
     preset: Preset
+    engine: EngineConfig
     runtime: RuntimeConfig
     input: InputConfig
     tiling: TilingConfig

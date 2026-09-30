@@ -36,6 +36,7 @@ dependencies = [
   "python-bidi>=0.4.2,<0.7",
   "deep-translator>=1.11,<2",
   "tqdm>=4.66,<5",
+  "pydantic>=2.6,<3",  # TextRegion record (v0.2.0)
 ]
 
 [project.optional-dependencies]

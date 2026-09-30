@@ -11,6 +11,9 @@ schema: 1
 # fast | balanced | quality  (overlays are defined in manga_ar/config.py: PRESETS)
 preset: balanced
 
+engine:
+  profile: legacy         # legacy (reproduces v0.1.0) | v2 (v0.2.0 upgrades, flag by flag)
+
 runtime:
   device: auto            # auto | cpu | cuda | mps  (auto falls back to cpu)
   offline: false          # true: never touch the network (local models/TM/cache only)
