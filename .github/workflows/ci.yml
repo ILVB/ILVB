@@ -1,0 +1,61 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      UV_CACHE_DIR: ${{ github.workspace }}/.cache/uv
+      MANGAAR_CACHE_DIR: ${{ github.workspace }}/.cache
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+      - name: Install (pinned lockfile)
+        # ocr and offline-mt bring torch/transformers, which v0.1.0 unit tests import.
+        run: >-
+          uv sync --locked --python 3.11
+          --extra dev --extra rapid --extra gui --extra bench --extra ocr --extra offline-mt
+      - name: Lint and format
+        run: .venv/bin/ruff check . && .venv/bin/ruff format --check .
+      - name: Types
+        run: .venv/bin/mypy
+      - name: Fixture fonts
+        run: .venv/bin/python scripts/download_assets.py
+      - name: Unit tests
+        run: .venv/bin/python -m pytest -q
+
+  governance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # the phase-order audit reads the whole history
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Phase order
+        run: python -m tools.audit_phase_order
+      - name: Gate 1 (enforced once any Phase 2 path exists)
+        run: python -m tools.assert_gate --if-phase2-present
+      - name: Edge-case matrix
+        run: python -m tools.check_edge_matrix
+      - name: Licence register (G-LIC-1)
+        run: python -m tools.check_licenses
+
+  pip-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Export the locked dependency set
+        run: uv export --locked --all-extras --no-emit-project --no-hashes --format requirements-txt > requirements-audit.txt
+      - name: pip-audit
+        run: uvx pip-audit --disable-pip --no-deps -r requirements-audit.txt
