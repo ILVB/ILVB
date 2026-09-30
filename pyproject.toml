@@ -127,7 +127,7 @@ follow_imports = "skip"
 follow_imports_for_stubs = true
 
 [[tool.mypy.overrides]]
-module = ["manga_ar.ui.*", "manga_ar.ocr.manga_ocr_engine", "manga_ar.ocr.paddle_engine", "manga_ar.ocr.easyocr_engine", "manga_ar.ocr.rapid_engine", "manga_ar.inpaint.lama", "manga_ar.translate.local_mt", "manga_ar.detect.comic_text_detector"]
+module = ["manga_ar.ui.*", "manga_ar.ocr.manga_ocr_engine", "manga_ar.ocr.paddle_engine", "manga_ar.ocr.easyocr_engine", "manga_ar.ocr.rapid_engine", "manga_ar.inpaint.lama", "manga_ar.translate.local_mt", "manga_ar.detect.comic_text_detector", "benchmarks.metrics.inpaint"]
 # Thin adapters over untyped third-party ML libraries.
 disallow_untyped_calls = false
 warn_return_any = false
