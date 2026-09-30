@@ -152,3 +152,47 @@ git: {'commit': '098673d…', 'dirty': False}
 
   BLEU 0.0: offline v0.1.0 has no usable translation provider on this host (TM empty,
   online providers disabled, Marian not downloadable; ADR-0001 #9).
+
+## Step 0.2.4 — frozen baseline — commit `e913ba0`
+```
+$ python -m tools.freeze_baseline          # at 02f1b9f, alone on the machine
+dev: {"pages": 40, "errors": {}, ...}   val: {"pages": 40, "errors": {}, ...}
+test: sealed (50 pages scored; results not printed)
+frozen: benchmarks/results/baseline_v0.1.0.json (sha256 recorded)
+$ cat benchmarks/results/baseline_v0.1.0.json.sha256
+8ab912fecf19ade47a709d663be195db2c193a3d2309c2180174d2cb0ab6a5f1  baseline_v0.1.0.json
+```
+- Determinism: frozen raw digests dev `2d643020…cb230` and val `60026b35…31b40` equal
+  those of the independent pre-freeze runs, so the v0.1.0 baseline re-runs bit-identically.
+- The test split was opened once, for purpose `freeze-baseline`, logged in
+  `benchmarks/results/sealed_access.jsonl`. No test-split metric was printed or read.
+- The freeze took about 24 min on 4 CPU cores; nothing else ran meanwhile (latencies feed
+  the 0.6 budgets).
+
+## Step 0.5 — governance — commits `0ceaf72` … `7a0dee6`
+- `tools/audit_phase_order.py` (0.5.1), `tools/assert_gate.py` (0.5.2), pre-commit hooks
+  and `docs/PHASE_MAP.md` (0.5.3), `docs/EDGE_CASE_MATRIX.md` and its checker (0.5.4),
+  the G-LIC-1 register `docs/LICENSES.md` and its checker (0.5.5), CI (0.5.6). Every
+  tool has negative controls; a fabricated `Phase: 2` commit fails the audit.
+```
+$ python -m tools.audit_phase_order        → OK (0 failures, 10 warnings)
+$ python -m tools.assert_gate              → FAIL .gates/phase1.approved missing (expected)
+$ python -m tools.assert_gate --if-phase2-present → exit 0 (no Phase 2 path exists)
+$ python -m tools.check_edge_matrix        → 0/18 IDs tested; FAIL (tests are next)
+$ python -m tools.check_licenses           → OK
+$ pytest -q (fresh env from uv.lock, CI extras) → 378 passed
+```
+- **Own defect, disclosed.** Ten commits (`e3a6d43` … `02f1b9f`) put `Phase:`/`Step:`
+  in the body, separated from the attribution lines by a blank line, so git does not parse
+  them as trailers. History is not rewritten (no force-push). They are listed in
+  `tools/trailer_exceptions.json`. The audit re-checks each entry against its message
+  and prints a WARN every run. A new commit-msg hook rejects such messages. The human
+  may reject this exception; then the audit stays red for these ten commits.
+- **Late licence register.** The bench dependencies (0.4) and generator fonts (0.3.2) were
+  used before `docs/LICENSES.md` existed, contrary to PD-8's "before use". They are
+  permissive (Apache-2.0, BSD, MIT, OFL-1.1) and are now registered. Every Phase 1
+  component is registered before use.
+- CI needs the `ocr` and `offline-mt` extras: 5 v0.1.0 unit tests import torch or
+  transformers, and without them the fresh environment failed 5 tests.
+- `pip-audit` was not run locally, because it sends the dependency list to PyPI/OSV
+  (OP-7, off-machine). It runs in CI as the master prompt requires.
