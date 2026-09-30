@@ -454,8 +454,9 @@ class Pipeline:
             doc.status = result.status
             doc.timings = timings
             if cfg.output.write_sidecar:
-                write_image(paths.clean, result.clean, "png")
-                write_image(paths.source, loaded.rgb, "png")
+                # Work images favour speed (lossless either way; ~3x faster to write).
+                write_image(paths.clean, result.clean, "png", png_compress_level=1)
+                write_image(paths.source, loaded.rgb, "png", png_compress_level=1)
                 self._describe_outputs(doc, paths)
                 doc.save(paths.sidecar)
             if cfg.runtime.debug:

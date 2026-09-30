@@ -88,6 +88,18 @@ def load_image_bytes(data: bytes, name: str, limits: LoadLimits | None = None) -
     if not data:
         raise ImageLoadError(f"{name}: empty file (0 bytes)")
     sha = hashlib.sha256(data).hexdigest()
+    try:
+        return _load(data, name, limits, sha)
+    except ImageLoadError:
+        raise
+    except MemoryError as exc:
+        raise ImageLoadError(f"{name}: not enough memory to decode this image") from exc
+    except Exception as exc:
+        # TypeError/KeyError/IndexError/struct.error/EOFError… on crafted files (fuzzing).
+        raise ImageLoadError(f"{name}: undecodable image ({type(exc).__name__}: {exc})") from exc
+
+
+def _load(data: bytes, name: str, limits: LoadLimits, sha: str) -> LoadedImage:
     notes: list[str] = []
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", Image.DecompressionBombWarning)
@@ -142,7 +154,7 @@ def _decode(img: Image.Image, name: str, limits: LoadLimits, notes: list[str]) -
     try:
         img.load()
         return
-    except (OSError, SyntaxError, ValueError) as exc:
+    except Exception as exc:
         if limits.truncated == "strict":
             raise ImageLoadError(f"{name}: corrupt or truncated image ({exc})") from exc
         first_error = exc
@@ -153,7 +165,7 @@ def _decode(img: Image.Image, name: str, limits: LoadLimits, notes: list[str]) -
         ImageFile.LOAD_TRUNCATED_IMAGES = True
         try:
             img.load()
-        except (OSError, SyntaxError, ValueError) as exc:
+        except Exception as exc:
             raise ImageLoadError(f"{name}: undecodable even in lenient mode ({exc})") from exc
         finally:
             ImageFile.LOAD_TRUNCATED_IMAGES = previous

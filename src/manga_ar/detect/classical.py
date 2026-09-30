@@ -137,23 +137,36 @@ class ClassicalDetector:
         for cid in np.unique(comp_container[strong]):
             members = np.flatnonzero(strong & (comp_container == cid))
             size = float(np.percentile(sizes[members], 75))
-            cmask = np.isin(labels, members)
             radius = max(2, round(0.55 * size))
+            # All work happens in a window around the members: every dilation below has a
+            # radius <= ``radius`` (+3 for the container), so a margin of radius + 4 gives
+            # results identical to full-page processing at a fraction of the cost.
+            mx0 = int(stats[members, 0].min())
+            my0 = int(stats[members, 1].min())
+            mx1 = int((stats[members, 0] + stats[members, 2]).max())
+            my1 = int((stats[members, 1] + stats[members, 3]).max())
+            win = BBox(mx0, my0, mx1, my1).expand(radius + 4).clip(w, h)
+            sl = (slice(win.y0, win.y1), slice(win.x0, win.x1))
+            labels_w = labels[sl]
+            cmask = np.isin(labels_w, members)
             joined = cv2.dilate(cmask.astype(np.uint8), disk(radius))
             if cid > 0:  # never bridge across the container's own boundary
-                container = clabels == cid
+                container = clabels[sl] == cid
                 joined &= cv2.dilate(container.astype(np.uint8), disk(3))
             ng, glabels = cv2.connectedComponents(joined, connectivity=8)
             for g in range(1, ng):
                 region = glabels == g
-                gmask = cmask & region
+                gmask_w = cmask & region
                 # attach weak pieces (dakuten, punctuation, dots) close to the glyphs
-                near = cv2.dilate(gmask.astype(np.uint8), disk(max(2, int(0.3 * size)))) > 0
-                gmask = gmask | (weak_mask & near)
-                box = BBox.from_mask(gmask)
-                if box is None:
+                near = cv2.dilate(gmask_w.astype(np.uint8), disk(max(2, int(0.3 * size)))) > 0
+                gmask_w = gmask_w | (weak_mask[sl] & near)
+                local = BBox.from_mask(gmask_w)
+                if local is None:
                     continue
-                count = len(np.unique(labels[gmask & strong_mask]))
+                box = local.translate(win.x0, win.y0)
+                gmask = np.zeros((h, w), dtype=bool)
+                gmask[sl] = gmask_w
+                count = len(np.unique(labels_w[gmask_w & strong_mask[sl]]))
                 carea = int(cstats[cid, cv2.CC_STAT_AREA]) if cid > 0 else h * w
                 group = _Group(gmask, box, size, count, polarity, carea)
                 if count <= 2:

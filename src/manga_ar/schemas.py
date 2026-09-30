@@ -135,10 +135,11 @@ class BBox:
 
     @classmethod
     def from_mask(cls, mask: BoolArray) -> BBox | None:
-        ys, xs = np.nonzero(mask)
-        if ys.size == 0:
+        rows = np.flatnonzero(mask.any(axis=1))
+        if rows.size == 0:
             return None
-        return cls(int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1)
+        cols = np.flatnonzero(mask.any(axis=0))
+        return cls(int(cols[0]), int(rows[0]), int(cols[-1]) + 1, int(rows[-1]) + 1)
 
 
 def rle_encode(mask: BoolArray) -> list[int]:

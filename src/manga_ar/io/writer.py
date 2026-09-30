@@ -58,6 +58,7 @@ def encode_image(
     webp_quality: int = 95,
     icc_profile: bytes | None = None,
     grayscale: bool = False,
+    png_compress_level: int = 6,
 ) -> bytes:
     """Encode an RGB uint8 array. ``grayscale`` stores a single channel when lossless."""
     if rgb.dtype != np.uint8 or rgb.ndim != 3 or rgb.shape[2] != 3:
@@ -71,7 +72,7 @@ def encode_image(
         params["icc_profile"] = icc_profile
     fmt = fmt.lower()
     if fmt == "png":
-        img.save(buf, "PNG", optimize=False, compress_level=6, **params)
+        img.save(buf, "PNG", optimize=False, compress_level=png_compress_level, **params)
     elif fmt in {"jpg", "jpeg"}:
         img.save(buf, "JPEG", quality=jpeg_quality, optimize=True, subsampling=0, **params)
     elif fmt == "webp":
