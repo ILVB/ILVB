@@ -6,11 +6,13 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import pytest
 from PIL import Image
 
-from benchmarks import rle
+from benchmarks import rle, run_benchmark
 from benchmarks.evaluate import score_page
 from benchmarks.schema import GtPage, GtRegion, PageResult, PredRegion, TypesetReport
+from benchmarks.summary import summarize
 
 H, W = 60, 80
 REF = "مرحبا بك في بيتنا الجميل"  # >= 4 tokens: corpus BLEU needs 4-grams
@@ -94,3 +96,30 @@ def test_failed_modes_score_as_untouched_page(tmp_path: Path) -> None:
     assert row["detection"]["tp"] == 0 and row["inpaint"]["regions"][0]["residual"]
     assert row["typeset"] == [{"region_id": "p-r1", "typeset": False}]
     assert row["translation"] == [{"region_id": "p-r1", "hyp": ""}]
+
+
+def test_cli_refuses_sealed_split(capsys: pytest.CaptureFixture[str]) -> None:
+    assert run_benchmark.main(["--version", "baseline", "--split", "test"]) == 2
+    assert "sealed" in capsys.readouterr().err
+
+
+def test_raw_digest_tracks_content(tmp_path: Path) -> None:
+    res = [PageResult(page_id="p", version="t", mode="erase", erased_image="p.png")]
+    (tmp_path / "p.erase.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "p.png").write_bytes(b"a")
+    first = run_benchmark.raw_digest(tmp_path, res)
+    assert run_benchmark.raw_digest(tmp_path, res) == first
+    (tmp_path / "p.png").write_bytes(b"b")
+    assert run_benchmark.raw_digest(tmp_path, res) != first
+
+
+def test_summary(tmp_path: Path) -> None:
+    gt, row = _row(tmp_path)
+    refs = {("p", r.region_id): r.references_ar for r in gt.regions}
+    s = summarize([row], refs, "silver")
+    assert s["ocr"]["cer"] == pytest.approx(1 / 5) and s["ocr"]["cer_sfx"] == 1.0
+    assert s["ocr"]["precision"] == 1.0 and s["ocr"]["recall"] == 0.5
+    assert s["inpaint"]["pages_background_intact"] == 0.0
+    assert s["typeset"]["inside_safe_rate"] == 1.0
+    assert s["translation"]["bleu"] == pytest.approx(100)
+    assert s["translation"]["label"] == "SILVER-REFERENCE, comparative only"
