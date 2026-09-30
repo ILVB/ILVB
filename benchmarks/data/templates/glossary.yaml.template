@@ -1,0 +1,12 @@
+# One block per series. Locked entries are hard constraints for the translator (G-TR-2).
+S01:
+  honorific_policy: transliterate   # transliterate (سان) | drop | translate (السيد/الآنسة)
+  terms:
+    - source: 花
+      arabic: هانا
+      kind: name          # name | term | place | honorific | organization
+      locked: true
+    - source: 先輩
+      arabic: سينباي
+      kind: honorific
+      locked: true

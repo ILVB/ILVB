@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MangaAR gold region (one line of regions.jsonl)",
+  "type": "object",
+  "required": ["page_id", "region_id", "type", "text_polygon", "text", "reading_order"],
+  "additionalProperties": false,
+  "properties": {
+    "page_id": {"type": "string"},
+    "region_id": {"type": "string"},
+    "type": {"enum": ["dialogue", "thought", "narration", "sfx", "sign", "credit"]},
+    "text_polygon": {"type": "array", "minItems": 4, "items": {"type": "array", "prefixItems": [{"type": "number"}, {"type": "number"}], "minItems": 2, "maxItems": 2}},
+    "bubble_polygon": {"type": ["array", "null"], "items": {"type": "array", "minItems": 2, "maxItems": 2}},
+    "text": {"type": "string"},
+    "vertical": {"type": "boolean"},
+    "reading_order": {"type": "integer", "minimum": 1},
+    "speaker": {"type": ["string", "null"]},
+    "illegible": {"type": "boolean"},
+    "notes": {"type": "string"}
+  }
+}

@@ -41,3 +41,9 @@ gradio_cached_examples/
 # OS
 .DS_Store
 Thumbs.db
+
+# v0.2.0 benchmark data and private artefacts (never committed; PD-8)
+/benchmarks/data/gold_real/
+/benchmarks/results/private/
+/benchmarks/cache/
+/.baseline/
