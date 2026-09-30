@@ -29,8 +29,11 @@ RAW_ROOT = DATA_DIR / "results"
 MODES = ("erase", "typeset_gt", "translate_gt")
 # Offline (PD-8) and without the persistent translation cache, so results never depend on
 # earlier runs. Candidate profiles are added with the Phase 1 feature flags.
+_OFFLINE = {"runtime.offline": True, "translate.cache": False}
 PROFILES: dict[str, dict[str, Any]] = {
-    "v010-offline": {"runtime.offline": True, "translate.cache": False},
+    "v010-offline": dict(_OFFLINE),  # the only profile v0.1.0 accepts (no engine section)
+    "legacy-offline": {**_OFFLINE, "engine.profile": "legacy"},
+    "v2-offline": {**_OFFLINE, "engine.profile": "v2"},
 }
 
 
@@ -50,19 +53,34 @@ def code_revision(version: str) -> dict[str, Any]:
 VOLATILE = {"stages", "code_origin"}  # timings and absolute paths differ between re-runs
 
 
+def _update(digest: Any, raw: Path, res: PageResult, exclude: set[str]) -> None:
+    body = res.model_dump(mode="json", exclude=exclude)
+    digest.update(json.dumps(body, sort_keys=True, ensure_ascii=False).encode("utf-8"))
+    for name in (res.erased_image, res.final_image):
+        if name:
+            pixels = load_rgb(raw / name)
+            digest.update(f"{name}:{pixels.shape}".encode())
+            digest.update(pixels.tobytes())
+
+
 def raw_digest(raw: Path, results: list[PageResult]) -> str:
     """Reproducible SHA-256 over raw outputs: canonical JSON without volatile fields, plus
     decoded pixels (independent of PNG encoder settings). Equal digests = identical runs."""
     digest = hashlib.sha256()
     for res in sorted(results, key=lambda r: (r.page_id, r.mode)):
-        body = res.model_dump(mode="json", exclude=VOLATILE)
-        digest.update(json.dumps(body, sort_keys=True, ensure_ascii=False).encode("utf-8"))
-        for name in (res.erased_image, res.final_image):
-            if name:
-                pixels = load_rgb(raw / name)
-                digest.update(f"{name}:{pixels.shape}".encode())
-                digest.update(pixels.tobytes())
+        _update(digest, raw, res, VOLATILE)
     return digest.hexdigest()
+
+
+def content_digests(raw: Path, results: list[PageResult]) -> dict[str, str]:
+    """Per (page, mode) SHA-256 that also ignores which implementation produced the output,
+    so baseline and candidate runs can be compared file by file."""
+    out = {}
+    for res in results:
+        digest = hashlib.sha256()
+        _update(digest, raw, res, VOLATILE | {"version"})
+        out[f"{res.page_id}.{res.mode}"] = digest.hexdigest()
+    return out
 
 
 def run(
@@ -70,8 +88,10 @@ def run(
     dataset: str = "synthetic_v1", profile: str = "v010-offline", limit: int | None = None,
     raw_root: Path = RAW_ROOT,
 ) -> dict[str, Any]:  # fmt: skip
-    items = load_split(split, dataset, capability)[:limit]
     config = PROFILES[profile]
+    if version == "baseline" and any(k.startswith("engine.") for k in config):
+        raise ValueError(f"profile {profile!r} sets engine.* keys that v0.1.0 does not have")
+    items = load_split(split, dataset, capability)[:limit]
     gts = {it.page_id: it.gt() for it in items}
     jobs = [{"mode": mode, "page_id": it.page_id, "lang": it.lang, "image": str(it.image),
              "clean": str(it.clean), "gt": str(it.gt_path), "config": config,

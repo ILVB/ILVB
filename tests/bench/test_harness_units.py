@@ -137,3 +137,34 @@ def test_summary(tmp_path: Path) -> None:
     assert s["typeset"]["inside_safe_rate"] == 1.0
     assert s["translation"]["bleu"] == pytest.approx(100)
     assert s["translation"]["label"] == "SILVER-REFERENCE, comparative only"
+
+
+def test_baseline_refuses_engine_profiles() -> None:
+    with pytest.raises(ValueError, match="engine"):
+        run_benchmark.run("baseline", "dev", profile="v2-offline")
+
+
+def test_content_digests_ignore_the_implementation(tmp_path: Path) -> None:
+    from benchmarks.compare_runs import differences
+
+    img = np.zeros((4, 4, 3), np.uint8)
+    Image.fromarray(img).save(tmp_path / "p.png")
+    a = PageResult(page_id="p", version="baseline", mode="erase", erased_image="p.png")
+    b = a.model_copy(update={"version": "candidate", "code_origin": "/src"})
+    da, db = (
+        run_benchmark.content_digests(tmp_path, [a]),
+        run_benchmark.content_digests(tmp_path, [b]),
+    )
+    assert differences(da, db) == []
+    c = a.model_copy(update={"errors": ["boom"]})
+    assert differences(da, run_benchmark.content_digests(tmp_path, [c])) == ["p.erase"]
+    assert differences(da, {}) == ["p.erase"]
+
+
+def test_ocr_by_category_groups(tmp_path: Path) -> None:
+    from benchmarks.summary import ocr_by_category
+
+    _gt, row = _row(tmp_path)
+    cats = ocr_by_category([row])
+    assert cats["flat_white"]["cer"] == pytest.approx(1 / 5)
+    assert cats["G-OCR-1:standard_bubbles"]["pages"] == 1 and "G-OCR-1:screentone" not in cats

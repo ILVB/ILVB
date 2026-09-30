@@ -10,6 +10,7 @@ Each metric is computed by code in `benchmarks/metrics/` from raw result files
 | CER | Micro-averaged character edit distance (jiwer) ÷ reference length, after NFKC and removal of all whitespace. Aggregated as Σedits / Σlength (never a mean of per-region rates). SFX regions are excluded from CER and reported separately. |
 | WER | Same for whitespace tokens (English and Korean only). |
 | Detection P/R/F1 | Axis-aligned boxes; greedy one-to-one matching by descending IoU; a match needs IoU ≥ 0.5. |
+| G-OCR-1 categories | standard bubbles = flat_white + tails_overlap; vertical text = vertical_ja; low-contrast = low_contrast; screentone = screentone; stylized fonts = stylized (synthetic_v1 categories). dark_bubble, text_on_art, sfx and tiny_text are reported per category but not constrained by G-OCR-1. Fixed at step 1.0.2, before any candidate OCR change. |
 | Reading-order accuracy | Over IoU-matched regions only: GT and predicted orders are converted to ranks among the matched set; accuracy = regions whose predicted rank equals their GT rank ÷ matched regions. |
 
 ## Inpainting (`inpaint.py`)

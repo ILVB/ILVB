@@ -65,6 +65,34 @@ def ocr_summary(rows: Sequence[Row]) -> dict[str, Any]:
     }  # fmt: skip
 
 
+# G-OCR-1 categories -> synthetic_v1 categories (docs/METRICS.md). The remaining synthetic
+# categories (dark_bubble, text_on_art, sfx, tiny_text) are reported but not constrained.
+GOCR_CATEGORIES: dict[str, tuple[str, ...]] = {
+    "standard_bubbles": ("flat_white", "tails_overlap"),
+    "vertical_text": ("vertical_ja",),
+    "low_contrast": ("low_contrast",),
+    "screentone": ("screentone",),
+    "stylized_fonts": ("stylized",),
+}
+
+
+def ocr_by_category(rows: Sequence[Row]) -> dict[str, dict[str, Any]]:
+    """CER / WER / detection per synthetic category and per G-OCR-1 category group."""
+    groups: dict[str, list[Row]] = defaultdict(list)
+    for row in rows:
+        groups[row["category"]].append(row)
+    for name, cats in GOCR_CATEGORIES.items():
+        groups[f"G-OCR-1:{name}"] = [r for r in rows if r["category"] in cats]
+    out = {}
+    for name, members in sorted(groups.items()):
+        if not members:
+            continue
+        s = ocr_summary(members)
+        out[name] = {"pages": len(members), "cer": s["cer"], "wer": s["wer"],
+                     "precision": s["precision"], "recall": s["recall"], "f1": s["f1"]}  # fmt: skip
+    return out
+
+
 def inpaint_summary(rows: Sequence[Row]) -> dict[str, Any]:
     regs = [r for row in rows for r in row["inpaint"]["regions"]]
     by_cat: dict[str, list[Row]] = defaultdict(list)
@@ -143,7 +171,8 @@ def summarize(rows: Sequence[Row], refs: Refs, reference_kind: str) -> dict[str,
             errors[mode] += 1
     return {
         "pages": len(rows), "errors": dict(sorted(errors.items())),
-        "ocr": ocr_summary(rows), "inpaint": inpaint_summary(rows),
+        "ocr": ocr_summary(rows), "ocr_by_category": ocr_by_category(rows),
+        "inpaint": inpaint_summary(rows),
         "typeset": typeset_summary(rows),
         "translation": translation_summary(rows, refs, reference_kind),
         "perf": perf_summary(rows),
