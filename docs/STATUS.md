@@ -5,7 +5,7 @@
 - [x] P1 Foundation & core contracts (gate passed; tag phase-1-complete)
 - [x] P2 Detection, bubbles, OCR (gate passed; tag phase-2-complete)
 - [x] P3 Inpainting (gate passed; tag phase-3-complete)
-- [ ] P4 Translation
+- [x] P4 Translation (gate passed with waivers W-003/W-004; tag phase-4-complete)
 - [ ] P5 Arabic typesetting + ARVS
 - [ ] P6 Pipeline, CLI, GUI
 - [ ] P7 Hardening, packaging, release
@@ -15,5 +15,5 @@
 - Network policy blocks HF/Google/MyMemory/Paddle hosts (waivers W-001..W-004).
 
 ## Exact next step
-Phase 4: translate/ (base, providers, resilience, cache, batching, glossary, tm, local_mt,
-normalize_ar) + fake-clock resilience suite; network smoke waived (W-003).
+Phase 5: typeset/ (arabic_text shim with L2/L4 bidi, wrap, layout A/B, fit, overflow ladder,
+contrast, render) + ARVS L1–L8 + specimen sheet.

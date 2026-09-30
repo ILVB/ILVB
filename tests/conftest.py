@@ -11,7 +11,6 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 CACHE = Path(os.environ.get("MANGAAR_CACHE_DIR", ROOT / ".cache"))
 os.environ.setdefault("MANGAAR_CACHE_DIR", str(CACHE))
-os.environ.setdefault("HF_HUB_OFFLINE", "1")
 os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
 os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "False")
 

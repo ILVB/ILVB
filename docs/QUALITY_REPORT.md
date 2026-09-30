@@ -13,33 +13,30 @@ Held-out synthetic pages: seeds 100–103 (29 pages, 140 ground-truth regions). 
 | region type accuracy | 1.000 (140/140) | — |
 | reading order exact | 1.000 (29/29 pages) | ≥ 0.95 |
 
-## OCR (character error rate)
-
-| language | orientation | regions | CER | gate |
-|---|---|---|---|---|
-| ja | horizontal | 26 | 0.000 | ≤ 0.10 |
-| ja | vertical | 36 | 0.028 | ≤ 0.10 |
-| ko | horizontal | 36 | 0.068 | ≤ 0.10 |
-| zh | horizontal | 31 | 0.000 | ≤ 0.10 |
-
-Engines used: easyocr=98, rapid=31
-
 ## Inpainting
 
 | preset | methods | px changed outside masks | regions with residual text | mean time / page |
 |---|---|---|---|---|
-| fast | {'solid': 124, 'ns': 8, 'telea': 8} | 0 | 0/140 (100.0% clean) | 57 ms |
-| balanced | {'solid': 124, 'ns': 8, 'lama': 8} | 0 | 0/140 (100.0% clean) | 211 ms |
+| fast | {'solid': 124, 'ns': 8, 'telea': 8} | 0 | 0/140 (100.0% clean) | 53 ms |
+| balanced | {'solid': 124, 'ns': 8, 'lama': 8} | 0 | 0/140 (100.0% clean) | 257 ms |
 | quality | {'solid': 124, 'ns': 8, 'lama': 8} | 0 | 0/140 (100.0% clean) | 200 ms |
 
 Residual text is measured two ways: on bubble/caption interiors, any pixel deviating > 30 levels from a 15 px median-filtered background (catches single-pixel remnants); on free text, by re-running the classical detector on the cleaned crop. The latter shares the detector's blind spot: glyphs drawn straight onto dense 1-px hatching without a halo can be missed by detection *and* by this check. Visual inspection found such a surviving glyph on the no-halo hatching fixture (DECISIONS D-019); `detect.detector: hybrid` recovers these pages.
+
+## Translation failover (mocked providers, fake clock)
+
+| scenario | regions | served by google / mymemory / local | untranslated | simulated wait |
+|---|---|---|---|---|
+| healthy | 120 | 120 / 0 / 0 | 0 | 18 s |
+| google 30 % errors | 120 | 120 / 0 / 0 | 0 | 44 s |
+| google down, mymemory 50 % | 120 | 0 / 120 / 0 | 0 | 71 s |
+| all online down | 120 | 0 / 0 / 120 | 0 | 43 s |
 
 ## Stage timings (CPU)
 
 | stage | mean / page | max |
 |---|---|---|
-| detect | 288 ms | 657 ms |
-| segment+order | 87 ms | 159 ms |
-| ocr | 258 ms | 3775 ms |
+| detect | 273 ms | 554 ms |
+| segment+order | 85 ms | 152 ms |
 
-Peak resident memory of the benchmark process: 1370 MB.
+Peak resident memory of the benchmark process: 1126 MB.

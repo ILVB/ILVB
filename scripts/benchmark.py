@@ -217,6 +217,105 @@ def section_inpaint(
     ]
 
 
+class FakeClock:
+    """Instant clock: ``sleep`` advances simulated time."""
+
+    def __init__(self) -> None:
+        self.now = 1000.0
+
+    def time(self) -> float:
+        return self.now
+
+    def sleep(self, seconds: float) -> None:
+        self.now += max(0.0, seconds)
+
+
+class _FlakyProvider:
+    """Fake provider failing with a given probability (seeded); 429s carry Retry-After."""
+
+    def __init__(self, name: str, fail_rate: float, rate_limit_share: float, seed: int) -> None:
+        import random as _random
+
+        self.name, self.network = name, True
+        self.fail_rate, self.rate_limit_share = fail_rate, rate_limit_share
+        self.rng = _random.Random(seed)
+        self.calls = 0
+
+    def available(self) -> bool:
+        return True
+
+    def supports(self, src: str, tgt: str) -> bool:
+        return True
+
+    def translate(self, text: str, src: str, tgt: str) -> str:
+        from manga_ar.errors import ProviderError, RateLimitError
+        from manga_ar.translate.batching import decode, encode
+
+        self.calls += 1
+        if self.rng.random() < self.fail_rate:
+            if self.rng.random() < self.rate_limit_share:
+                raise RateLimitError("429", retry_after=3.0)
+            raise ProviderError("503")
+        segments = decode(text, text.count("[")) if text.startswith("[1]") else None
+        if segments is not None:
+            return encode([f"ترجمة {len(t)}" for t in segments])
+        return f"ترجمة {len(text)}"
+
+
+def section_translation(lines: list[str]) -> None:
+    """Mocked failover statistics (fake providers, fake clock: no network, no sleeping)."""
+    from manga_ar.schemas import BBox, OcrResult, Region
+    from manga_ar.translate.service import TranslationService
+
+    cfg = load_config(environ={})
+    lines += [
+        "## Translation failover (mocked providers, fake clock)",
+        "",
+        "| scenario | regions | served by google / mymemory / local | untranslated | "
+        "simulated wait |",
+        "|---|---|---|---|---|",
+    ]
+    for label, rates in (
+        ("healthy", (0.0, 0.0, 0.0)),
+        ("google 30 % errors", (0.3, 0.0, 0.0)),
+        ("google down, mymemory 50 %", (1.0, 0.5, 0.0)),
+        ("all online down", (1.0, 1.0, 0.0)),
+    ):
+        providers = [
+            _FlakyProvider("google", rates[0], 0.5, 1),
+            _FlakyProvider("mymemory", rates[1], 0.5, 2),
+            _FlakyProvider("local", rates[2], 0.0, 3),
+        ]
+        providers[2].network = False
+        clock = FakeClock()
+        svc = TranslationService(providers, cfg, None, None, clock)
+        served: dict[str, int] = defaultdict(int)
+        untranslated = total = 0
+        for page in range(20):
+            regions = [
+                Region(
+                    id=f"p{page}r{i}",
+                    type=RegionType.BUBBLE,
+                    bbox=BBox(0, 0, 1, 1),
+                    reading_order=i,
+                    ocr=OcrResult("x", f"テキスト{page}-{i}", lang="ja"),
+                )
+                for i in range(6)
+            ]
+            svc.translate_regions(regions, "ja")
+            for r in regions:
+                total += 1
+                if r.translation is not None and r.translation.provider != "none":
+                    served[r.translation.provider] += 1
+                else:
+                    untranslated += 1
+        lines.append(
+            f"| {label} | {total} | {served['google']} / {served['mymemory']} / "
+            f"{served['local']} | {untranslated} | {clock.now - 1000.0:.0f} s |"
+        )
+    lines.append("")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seeds", nargs=2, type=int, default=(100, 104))
@@ -239,6 +338,7 @@ def main() -> int:
     if not args.no_ocr:
         section_ocr(pages, segmented, lines, timings)
     section_inpaint(pages, segmented, lines)
+    section_translation(lines)
     lines += ["## Stage timings (CPU)", "", "| stage | mean / page | max |", "|---|---|---|"]
     for stage, vals in timings.items():
         lines.append(f"| {stage} | {np.mean(vals) * 1000:.0f} ms | {np.max(vals) * 1000:.0f} ms |")

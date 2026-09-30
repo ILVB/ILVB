@@ -182,6 +182,7 @@ class TranslateConfig:
     cache: bool
     min_arabic_ratio: float
     max_length_ratio: float
+    translate_suspect: bool
 
     def __post_init__(self) -> None:
         known = {"tm", "google", "mymemory", "libretranslate", "local"}

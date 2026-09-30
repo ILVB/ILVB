@@ -245,6 +245,59 @@ is best (SP-E).
 averaged back to grey, so LaMa cannot introduce colour into B/W pages. A test covers
 auto, Telea and LaMa.
 
+## Phase 4
+
+**D-021 — Provider protocol and orchestration.** A provider performs one request.
+Batching, failover, caching and validation live in `TranslationService`. The default
+chain is tm → google → mymemory → libretranslate (only with a URL) → local. Offline mode
+drops network providers. Local MT implements `translate_many` (a true model batch, no
+markers).
+
+**D-022 — Resilience defaults.**
+- Token bucket: 1 req/s, burst 2.
+- Full-jitter backoff: base 1 s, ×2, cap 60 s, ≤ 6 attempts; `Retry-After` is a lower
+  bound.
+- Breaker: opens after 5 consecutive failures, 120 s cool-down, single half-open probe.
+- Deadline: 25 s per call.
+
+`call_with_deadline` uses a **daemon thread**. A `ThreadPoolExecutor` worker is joined at
+interpreter exit, so an abandoned hung request would keep the process alive; that bug
+was found and fixed while writing the deadline tests. deep-translator raises
+`TooManyRequests` on HTTP 429 but does not expose `Retry-After`, so its 429s rely on
+jittered backoff.
+
+**D-023 — Page batching.**
+- Format: `[1] … [2] …` on one line, because the Google web endpoint collapses newlines.
+- Parsing tolerates full-width brackets and Arabic-Indic digits in the markers.
+- Any missing, duplicated or out-of-order marker, or text before `[1]`, triggers the
+  per-region fallback. A segment that fails validation is retried alone once.
+- Chunk limits: google 4500, mymemory 450, libretranslate 4500, local 1500 characters.
+
+**D-024 — Validation and flags.** An output is rejected when it is empty, identical to
+the source, has an Arabic-letter ratio < 0.6, still contains CJK/Hangul, is longer than
+8 × the source + 20, or has lost a glossary placeholder. When all providers reject a
+region, it is flagged UNTRANSLATED and keeps its original pixels. OCR_SUSPECT regions are
+not translated by default (`translate.translate_suspect: false`); they stay flagged for
+review in the GUI.
+
+**D-025 — Glossary.** Terms are replaced by `ZQX<n>X` tokens: Latin, unlikely to be
+translated, and case-insensitive on restore. If the tokens are lost on every provider,
+the text is re-translated without protection and flagged GLOSSARY_DEGRADED.
+
+**D-026 — Cache.** SQLite (WAL) at `<cache>/translations.sqlite3`, plus an in-memory
+layer. The key is sha256(cache version incl. MangaAR version | provider | src | tgt |
+NFKC text). Identical sources on a page are translated once (dedupe).
+
+**D-027 — normalize_ar.**
+- NFKC, which also un-shapes presentation forms, so double shaping is impossible.
+- Strips bidi controls (LRM, RLM, LRE, RLE, PDF, LRO, RLO, LRI, RLI, FSI, PDI, ALM),
+  zero-width characters and tatweel.
+- Letter mapping: keheh/gaf → kaf; Farsi yeh → yeh; heh goal/doachashmee → heh.
+- Punctuation: `,` → `،` except decimal commas; `;` → `؛`; `?` → `؟`; 「」『』“” → «»;
+  ellipses → `…`.
+- Spacing is fixed; digit policy is western (default) or arabic_indic; decorations are
+  re-appended; length is capped at 400 characters.
+
 ## Waivers
 
 **W-001 (SP-B / P2 OCR JA via manga-ocr).** Reason: huggingface.co blocked. Risk: vertical

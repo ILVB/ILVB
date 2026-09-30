@@ -108,6 +108,7 @@ translate:
   cache: true             # persistent SQLite cache in <cache_dir>/translations.sqlite3
   min_arabic_ratio: 0.6   # share of letters that must be Arabic in a valid output
   max_length_ratio: 8.0   # output/input length ratio above this is suspicious
+  translate_suspect: false  # translate regions flagged OCR_SUSPECT (default: leave for review)
 
 typeset:
   font: NotoNaskhArabic
