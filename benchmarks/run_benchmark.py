@@ -47,14 +47,21 @@ def code_revision(version: str) -> dict[str, Any]:
     return {"commit": head.stdout.strip(), "dirty": bool(status.stdout.strip())}
 
 
+VOLATILE = {"stages", "code_origin"}  # timings and absolute paths differ between re-runs
+
+
 def raw_digest(raw: Path, results: list[PageResult]) -> str:
-    files = set()
-    for res in results:
-        files.add(f"{res.page_id}.{res.mode}.json")
-        files |= {name for name in (res.erased_image, res.final_image) if name}
+    """Reproducible SHA-256 over raw outputs: canonical JSON without volatile fields, plus
+    decoded pixels (independent of PNG encoder settings). Equal digests = identical runs."""
     digest = hashlib.sha256()
-    for name in sorted(files):
-        digest.update(f"{name}\0{hashlib.sha256((raw / name).read_bytes()).hexdigest()}\n".encode())
+    for res in sorted(results, key=lambda r: (r.page_id, r.mode)):
+        body = res.model_dump(mode="json", exclude=VOLATILE)
+        digest.update(json.dumps(body, sort_keys=True, ensure_ascii=False).encode("utf-8"))
+        for name in (res.erased_image, res.final_image):
+            if name:
+                pixels = load_rgb(raw / name)
+                digest.update(f"{name}:{pixels.shape}".encode())
+                digest.update(pixels.tobytes())
     return digest.hexdigest()
 
 

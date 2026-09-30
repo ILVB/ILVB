@@ -11,7 +11,14 @@ from PIL import Image
 
 from benchmarks import rle, run_benchmark
 from benchmarks.evaluate import score_page
-from benchmarks.schema import GtPage, GtRegion, PageResult, PredRegion, TypesetReport
+from benchmarks.schema import (
+    GtPage,
+    GtRegion,
+    PageResult,
+    PredRegion,
+    StageStats,
+    TypesetReport,
+)
 from benchmarks.summary import summarize
 
 H, W = 60, 80
@@ -103,14 +110,21 @@ def test_cli_refuses_sealed_split(capsys: pytest.CaptureFixture[str]) -> None:
     assert "sealed" in capsys.readouterr().err
 
 
-def test_raw_digest_tracks_content(tmp_path: Path) -> None:
-    res = [PageResult(page_id="p", version="t", mode="erase", erased_image="p.png")]
-    (tmp_path / "p.erase.json").write_text("{}", encoding="utf-8")
-    (tmp_path / "p.png").write_bytes(b"a")
-    first = run_benchmark.raw_digest(tmp_path, res)
-    assert run_benchmark.raw_digest(tmp_path, res) == first
-    (tmp_path / "p.png").write_bytes(b"b")
-    assert run_benchmark.raw_digest(tmp_path, res) != first
+def test_raw_digest_is_reproducible_and_tracks_content(tmp_path: Path) -> None:
+    img = np.zeros((4, 4, 3), np.uint8)
+    Image.fromarray(img).save(tmp_path / "p.png")
+    res = PageResult(page_id="p", version="t", mode="erase", erased_image="p.png")
+    first = run_benchmark.raw_digest(tmp_path, [res])
+    timed = res.model_copy(update={"stages": {"ocr": StageStats(seconds=9.0, peak_rss_mb=1.0)},
+                                   "code_origin": "/elsewhere"})  # fmt: skip
+    assert run_benchmark.raw_digest(tmp_path, [timed]) == first  # timings are not content
+    Image.fromarray(img).save(tmp_path / "p.png", compress_level=1)
+    assert run_benchmark.raw_digest(tmp_path, [res]) == first  # encoder settings neither
+    img[0, 0] = 1
+    Image.fromarray(img).save(tmp_path / "p.png")
+    assert run_benchmark.raw_digest(tmp_path, [res]) != first  # one pixel is
+    edited = res.model_copy(update={"errors": ["x"]})
+    assert run_benchmark.raw_digest(tmp_path, [edited]) != run_benchmark.raw_digest(tmp_path, [res])
 
 
 def test_summary(tmp_path: Path) -> None:
