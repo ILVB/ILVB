@@ -1,0 +1,39 @@
+# Local hooks only: nothing is fetched from the network. Install once per clone:
+#   .venv/bin/pre-commit install --hook-type pre-commit --hook-type commit-msg
+default_stages: [pre-commit]
+repos:
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff check
+        entry: .venv/bin/ruff check --force-exclude
+        language: system
+        types: [python]
+      - id: ruff-format
+        name: ruff format --check
+        entry: .venv/bin/ruff format --check --force-exclude
+        language: system
+        types: [python]
+      - id: audit-phase-order
+        name: phase order (history)
+        entry: .venv/bin/python -m tools.audit_phase_order
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: audit-phase-order-staged
+        name: phase order (staged paths and dependencies)
+        entry: .venv/bin/python -m tools.audit_phase_order --staged
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: assert-gate
+        name: Gate 1 approval for Phase 2 paths
+        entry: .venv/bin/python -m tools.assert_gate --if-phase2-staged
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: commit-msg-trailers
+        name: Phase/Step git trailers
+        entry: .venv/bin/python -m tools.audit_phase_order --commit-msg
+        language: system
+        stages: [commit-msg]
