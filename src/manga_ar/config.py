@@ -97,7 +97,7 @@ class TilingConfig:
 
 @dataclass(frozen=True)
 class DetectConfig:
-    detector: Literal["auto", "classical", "rapid", "craft", "ctd"]
+    detector: Literal["auto", "classical", "hybrid", "rapid", "craft", "ctd"]
     sfx: Literal["skip", "translate"]
     min_glyph_px: int
     max_glyph_frac: float

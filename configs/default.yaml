@@ -39,7 +39,8 @@ tiling:
   overlap: 192            # minimum overlap between consecutive tiles
 
 detect:
-  detector: auto          # auto | classical | rapid | craft | ctd (ctd: GPL-3.0 weights, opt-in)
+  detector: auto          # auto(=classical) | classical | hybrid (classical + PP-OCR DB for text
+                          # over artwork) | rapid | craft | ctd (ctd: GPL-3.0 weights, opt-in)
   sfx: skip               # skip | translate
   min_glyph_px: 6         # smallest glyph side considered text
   max_glyph_frac: 0.12    # largest glyph side as a fraction of the page's shorter side
@@ -67,8 +68,8 @@ ocr:
 inpaint:
   strategy: auto          # auto | solid | telea | ns | lama
   use_lama: true          # auto strategy may use LaMa for textured backgrounds
-  uniform_std: 6.0        # luminance std-dev (0-255) at/below which a background is uniform
-  gradient_residual_std: 4.0    # std-dev after removing a planar fit: below => smooth gradient
+  uniform_std: 6.0        # robust per-channel std-dev (0-255) at/below which a background is uniform
+  gradient_residual_std: 4.0    # robust std-dev after a per-channel planar fit: below => gradient
   dilate_min: 2
   dilate_max: 8
   allowed_erode: 2        # erode bubble interior by this many px (keeps outlines/tails)

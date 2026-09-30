@@ -13,7 +13,8 @@ log = get_logger(__name__)
 
 
 def build_detector(cfg: AppConfig, manager: ModelManager) -> TextDetector:
-    """``auto``/``classical`` → classical; ``ctd``/``rapid`` → ML adapters (fallback: classical).
+    """``auto``/``classical`` → classical; ``hybrid``/``ctd``/``rapid``/``craft`` → ML-assisted
+    detectors (fallback: classical).
 
     ``auto`` stays classical because it scored best on the synthetic benchmark and needs no
     download (DECISIONS D-011); comic-text-detector is opt-in because of its GPL weights.
@@ -31,6 +32,11 @@ def build_detector(cfg: AppConfig, manager: ModelManager) -> TextDetector:
             from manga_ar.detect.rapid_detector import RapidDbDetector
 
             return RapidDbDetector(cfg.detect, classical)
+        if name == "hybrid":
+            from manga_ar.detect.hybrid import HybridDetector
+            from manga_ar.detect.rapid_detector import RapidDbDetector
+
+            return HybridDetector(classical, RapidDbDetector(cfg.detect, classical))
         from manga_ar.detect.craft_detector import CraftDetector
 
         return CraftDetector(cfg.detect, manager, classical, offline=cfg.runtime.offline)

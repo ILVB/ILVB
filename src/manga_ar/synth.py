@@ -745,6 +745,42 @@ def adversarial_gutter_page(seed: int = 0, cache_dir: Path | None = None) -> Syn
     return b.build()
 
 
+def texture_page(seed: int = 0, cache_dir: Path | None = None, lang: str = "ja") -> SynthPage:
+    """Free text directly over screentone and over hatching (exercises LaMa / Telea)."""
+    width, height = 900, 700
+    b = PageBuilder(
+        width,
+        height,
+        seed=seed,
+        fonts=Fonts(cache_dir),
+        lang=lang,
+        reading_order=_default_order(lang),
+        name=f"texture_{lang}_{seed}",
+    )
+    left, right = BBox(20, 20, 440, 680), BBox(460, 20, 880, 680)
+    b.screentone(BBox(left.x0 + 6, left.y0 + 6, left.x1 - 6, left.y1 - 6), step=5, dot=2, value=150)
+    b.hatching(BBox(right.x0 + 6, right.y0 + 6, right.x1 - 6, right.y1 - 6), step=9)
+    b.panel(left)
+    b.panel(right)
+    texts = list(TEXTS[lang])
+    b.rng.shuffle(texts)
+    areas = [right, left] if lang == "ja" else [left, right]
+    for k, area in enumerate(areas):
+        text = texts.pop()
+        dims = b.bubble_box_for(text, 34, lang == "ja", scale=1.1)
+        spot = b.place(dims, area, margin=40)
+        if spot is None:
+            continue
+        if k == 0:  # manga-style white halo behind free text on the first panel
+            halo = np.asarray(b.render_text(text, 34, lang == "ja"))
+            halo = cv2.dilate(halo, np.ones((9, 9), np.uint8))
+            center = (int(spot.center[0]), int(spot.center[1]))
+            b._stamp_text(Image.fromarray(halo), center, (255, 255, 255))
+        b.add_region("free_text", text, spot, vertical=lang == "ja", size=34, background="texture")
+    b.tags.append("texture")
+    return b.build()
+
+
 def two_block_bubble_page(seed: int = 0, cache_dir: Path | None = None) -> SynthPage:
     """One large bubble holding two separated text blocks (must become one MERGED region)."""
     width, height = 700, 700

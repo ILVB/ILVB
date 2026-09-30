@@ -27,7 +27,7 @@ U8 = npt.NDArray[np.uint8]
 BoolArray = npt.NDArray[np.bool_]
 
 
-@dataclass
+@dataclass(eq=False)  # identity semantics: groups hold numpy masks
 class _Group:
     mask: BoolArray  # full-page glyph pixels of this group
     bbox: BBox
@@ -36,6 +36,13 @@ class _Group:
     polarity: str
     container_area: int
     background_std: float = 0.0  # luminance std-dev around the glyphs
+
+
+def _box_gap(a: BBox, b: BBox) -> float:
+    """Euclidean gap between two boxes (0 when they touch or overlap)."""
+    dx = max(0, max(a.x0, b.x0) - min(a.x1, b.x1))
+    dy = max(0, max(a.y0, b.y0) - min(a.y1, b.y1))
+    return float(np.hypot(dx, dy))
 
 
 class ClassicalDetector:
@@ -51,6 +58,16 @@ class ClassicalDetector:
         gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
         groups = self._groups(gray, "dark") + self._groups(gray, "light")
         groups = self._resolve_polarity_overlaps(groups, gray)
+        # Text drawn straight onto hatching fuses with the lines into one huge component;
+        # a pass on morphologically opened ink (1-px lines removed) recovers it.
+        for extra in self._groups(gray, "dark", opened=True):
+            if not any(
+                extra.bbox.iou(g.bbox) > 0.3
+                or extra.bbox.overlap_ratio(g.bbox) > 0.5
+                or g.bbox.overlap_ratio(extra.bbox) > 0.5
+                for g in groups
+            ):
+                groups.append(extra)
         blocks = [self._to_block(g) for g in groups]
         blocks = [b for b in blocks if b.bbox.area >= self.cfg.min_region_area]
         blocks = self._drop_nested(blocks)
@@ -71,9 +88,11 @@ class ClassicalDetector:
         return np.asarray(ink, dtype=np.uint8)
 
     # -------------------------------------------------------------- groups
-    def _groups(self, gray: U8, polarity: str) -> list[_Group]:
+    def _groups(self, gray: U8, polarity: str, opened: bool = False) -> list[_Group]:
         h, w = gray.shape
         ink = self._ink(gray, polarity)
+        if opened:
+            ink = cv2.morphologyEx(ink, cv2.MORPH_OPEN, np.ones((2, 2), np.uint8))
         n, labels, stats, _ = cv2.connectedComponentsWithStats(ink, connectivity=8)
         max_side = self.cfg.max_glyph_frac * min(h, w)
         min_side = self.cfg.min_glyph_px
@@ -140,7 +159,21 @@ class ClassicalDetector:
                 if count <= 2:
                     group.background_std = self._background_std(gray, group)
                 groups.append(group)
-        return [g for g in groups if self._plausible(g)]
+        kept = [g for g in groups if self._plausible(g)]
+        # A glyph or two on textured art is rejected alone, but when it continues an
+        # accepted neighbouring group of similar glyph size it is part of that text.
+        for cand in groups:
+            if cand in kept or cand.background_std <= 40.0:
+                continue
+            for host in kept:
+                ratio = cand.size / max(host.size, 1.0)
+                gap = _box_gap(cand.bbox, host.bbox)
+                if 0.5 <= ratio <= 2.0 and gap <= 1.5 * host.size:
+                    host.mask = host.mask | cand.mask
+                    host.bbox = host.bbox.union(cand.bbox)
+                    host.n_glyphs += cand.n_glyphs
+                    break
+        return kept
 
     @staticmethod
     def _background_std(gray: U8, g: _Group) -> float:
@@ -497,7 +530,8 @@ class ClassicalDetector:
         sizes = np.array([b.glyph_size for b in blocks], dtype=np.float64)
         median = float(np.median(sizes))
         for b in blocks:
-            absolute = b.glyph_size >= 0.05 * page_min_side
-            relative = len(blocks) >= 2 and b.glyph_size >= 2.2 * median
-            if absolute and (relative or len(blocks) == 1):
-                b.is_sfx = True
+            if len(blocks) >= 2:
+                sfx = b.glyph_size >= 0.05 * page_min_side and b.glyph_size >= 2.2 * median
+            else:  # nothing to compare with: only very large lettering counts as SFX
+                sfx = b.glyph_size >= 0.1 * page_min_side
+            b.is_sfx = bool(sfx)

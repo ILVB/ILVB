@@ -118,11 +118,13 @@ class FloodBubbleSegmenter:
             vertical=block.vertical,
             score=block.score,
         )
-        if block.is_sfx:
-            region.polygon = _rect_polygon(block.bbox)
-            region.safe_box = block.bbox
-            return region
         grown = self._grow(rgb, block, ctx, scale=self.cfg.bubble_roi_scale)
+        if block.is_sfx:
+            if grown.mask is None:
+                region.polygon = _rect_polygon(block.bbox)
+                region.safe_box = block.bbox
+                return region
+            region.type = RegionType.BUBBLE  # big lettering inside a closed bubble: dialogue
         for factor in (1.8, 3.2):  # large bubbles around little text need a bigger window
             if grown.mask is not None or grown.reason != "roi":
                 break

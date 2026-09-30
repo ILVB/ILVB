@@ -197,6 +197,54 @@ regions. Score = confidence × script consistency × (1 if the script vote agree
 0.5), plus a 0.15 vertical-text prior for ja. The pipeline aggregates votes per document
 (folder/archive).
 
+## Phase 3
+
+**D-017 — Inpaint mask.**
+- Start from the detector's glyph pixels.
+- Bubbles and captions add "stray ink": pixels within 0.35 glyph of the text deviating
+  > 30 levels from a median-filtered background. This catches anti-aliased stroke tips
+  and dots. Visual inspection had found 1–6 px specks in 6/72 regions without it; after
+  the fix, 0/72.
+- Free text adds a contrasting halo (white outline over art), found by colour similarity
+  to the pixels hugging the glyphs.
+- Adaptive dilation clamp(½·stroke + 1, 2, 8), with stroke = 2 × P90 of the distance
+  transform on a zero-padded mask. The padding fixes an overflow found by the tests.
+- Clipped to the allowed zone: the bubble interior eroded 2 px, or dilated text plus halo
+  margin for free text and leak fallbacks.
+
+**D-018 — Background classification and strategy.** The ring 2–10 px around the mask,
+inside the zone, is classified:
+- uniform: robust per-channel spread (1.4826·MAD) ≤ 6 and outliers (> 20 levels) ≤ 3 %
+  → solid fill (median colour; the 1-px feather blends only near-background pixels);
+- gradient: robust residual of a per-channel planar fit ≤ 4 and residual outliers ≤ 3 %
+  → Navier-Stokes (Telea fallback);
+- otherwise texture → LaMa on a 96 px context crop (Telea fallback, INPAINT_FALLBACK).
+
+Why the robust measures:
+- Luminance std missed hue-shifting gradients (a bubble going cream → light blue).
+- Plain std misfired on stray pixels.
+- MAD alone called sparse screentone "uniform". Outlier fractions separate the cases
+  cleanly: bubbles ≤ 0.6 %, textures ≥ 10.8 %.
+
+Evidence (`spikes/out` and `.cache/out/texture_methods.png`): on screentone, LaMa
+continues the dot pattern, while Telea and NS leave grey blobs. On smooth gradients, NS
+is best (SP-E).
+
+**D-019 — Text over dense hatching without a halo.**
+- *Attempt 1*: a second detection pass on morphologically opened ink.
+- *Attempt 2*: merging textured glyph groups into adjacent text.
+- *Attempt 3*: a hybrid with the PP-OCR DB detector. On texture pages it reaches
+  P = R = 1.0, but on regular pages P drops to 0.965 (from 0.986).
+- Decision (rabbit-hole rule after three attempts): `auto` stays classical, and
+  `detect.detector: hybrid` is offered for art-heavy pages.
+- Known limitation: the classical detector can miss individual glyphs drawn straight onto
+  1-px hatching without a halo. They then survive inpainting (fixable via GUI edit, the
+  hybrid detector, or ctd).
+
+**D-020 — Grayscale preservation.** When a crop is grey (R=G=B), the inpainted result is
+averaged back to grey, so LaMa cannot introduce colour into B/W pages. A test covers
+auto, Telea and LaMa.
+
 ## Waivers
 
 **W-001 (SP-B / P2 OCR JA via manga-ocr).** Reason: huggingface.co blocked. Risk: vertical
