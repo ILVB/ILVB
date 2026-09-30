@@ -1,6 +1,25 @@
 # Status
 
-## Phase checklist
+## v0.2.0 program (branch `release/0.2.0`, pushed to `claude/peaceful-meitner-4wcz28`)
+Ledger: `docs/LEDGER.md`. Plan: `docs/PLAN_PHASE1.md`. Phase map: `docs/PHASE_MAP.md`.
+
+- [x] Phase 0: audit (0.1), baseline worktree + adapter (0.2.1–0.2.2), metrics + harness
+  (0.2.3), frozen baseline for dev/val/test (0.2.4), synthetic_v1 dataset + sealed test
+  (0.3), environment snapshot (0.4), governance (0.5), budgets (0.6, ADR-0003)
+- [ ] Phase 1: core engine → v0.2.0 (not started; waiting for the human decisions below)
+- [ ] Gate 1 → human checkpoint (`PHASE 1 APPROVED`) — Phase 2 locked (PD-1)
+
+Open items for the human: blocked models (NLLB, GGUF, sentence-transformers; > 2 GB needs
+approval), LPIPS weights, the G-TR baseline definition, English target scope, remote
+`release/0.2.0`, CPU torch wheels, the trailer exception (10 commits), and two pip-audit
+findings without fixes (deep-translator PYSEC-2022-252, nltk PYSEC-2026-3740).
+Real gold data is also still pending.
+
+Next step: Phase 1 step 1.0.1 (docs/PLAN_PHASE1.md) once the model questions are answered;
+steps that need no blocked model (1.0.x detection/OCR, 1.3.x inpainting, 1.2.x
+typesetting) can proceed first.
+
+## v0.1.0 phase checklist
 - [x] P0 Preflight, scaffold, spikes (gate passed; tag phase-0-complete)
 - [x] P1 Foundation & core contracts (gate passed; tag phase-1-complete)
 - [x] P2 Detection, bubbles, OCR (gate passed; tag phase-2-complete)

@@ -196,3 +196,33 @@ $ pytest -q (fresh env from uv.lock, CI extras) → 378 passed
   transformers, and without them the fresh environment failed 5 tests.
 - `pip-audit` was not run locally, because it sends the dependency list to PyPI/OSV
   (OP-7, off-machine). It runs in CI as the master prompt requires.
+
+## Step 0.5.4 (cont.) — edge-case tests — commit `643af46`
+- 15/18 IDs have ID-named tests on real components (the matrix notes partial coverage).
+  E-09, E-13 and E-17 stay untested until Phase 1 delivers the behaviour, so the
+  `governance` CI job stays red on the matrix step until then.
+- Two tests passed first time with vacuous assertions (a `hasattr` fallback and an
+  `or` over a substring that was already checked). Both were rewritten to check real
+  properties before committing: symbol runs come from the symbol fonts; the offline error
+  names the URL, destination and SHA-256.
+
+## CI run 1 (commit `0b78d4d`) — https://github.com/ILVB/ILVB/actions/runs/36725202771
+- `test`: success (install from uv.lock, ruff, mypy, fixture fonts, unit tests).
+- `governance`: phase-order audit OK; edge matrix FAIL 0/18 (expected at that commit).
+- `pip-audit`: FAIL, 2 findings without fix versions:
+  - `nltk 3.10.3` GHSA-8mgp-746c-j5xp / PYSEC-2026-3740: file-sandbox bypass in model
+    save/load APIs (`TransitionParser`, `AveragedPerceptron`, `PerceptronTagger`,
+    maxent). The benchmark uses only `meteor_score` and `ISRIStemmer`, in the `[bench]`
+    extra, and never those APIs.
+  - `deep-translator 1.11.4` PYSEC-2022-252: a 2022 malicious release after an account
+    takeover. The advisory lists no version range, which is probably why it matches the
+    current release; this could not be verified from here. It is a v0.1.0 core dependency.
+  - Not suppressed: ignoring security findings is the human's decision.
+
+## Step 0.6 — budgets — commits `6442496`, `2a1aaeb`
+- `benchmarks/budgets.yaml` from the frozen dev+val baseline (ADR-0003):
+  detect 1.29/1.76 s, ocr 1.20/1.72 s, inpaint 1.03/6.28 s, typeset 1.09/1.21 s
+  (p50/p95 per page), translate 20/45 s (absolute), peak RSS 8192 MiB, VRAM n/a.
+- The audit now fails if any frozen artefact (baseline lock, manifest, frozen results,
+  budgets) is touched by a second commit.
+- Phase 0 complete. `pytest -q`: 397 passed, 21 deselected; ruff and mypy clean.
