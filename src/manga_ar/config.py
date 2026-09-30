@@ -28,6 +28,9 @@ from manga_ar.errors import ConfigError
 Preset = Literal["fast", "balanced", "quality"]
 Lang = Literal["auto", "ja", "ko", "zh"]
 ReadingOrder = Literal["auto", "manga_rtl", "comic_ltr", "webtoon_ttb"]
+# A v0.2.0 upgrade flag: ``auto`` follows engine.profile (off for legacy, on for v2);
+# ``on``/``off`` pin it for ablations.
+Upgrade = Literal["auto", "on", "off"]
 
 # Preset overlays are applied on top of the defaults, before user files.
 PRESETS: dict[str, dict[str, Any]] = {
@@ -229,8 +232,11 @@ class TypesetConfig:
     contrast_target: float
     strip_harakat: bool
     strategy: Literal["shape", "rect"]
+    source_size_cap: Upgrade
+    source_size_factor: float
 
     def __post_init__(self) -> None:
+        _check(self.source_size_factor > 0, "typeset.source_size_factor must be > 0")
         _check(self.line_spacing_floor >= 1.0, "typeset.line_spacing_floor must be >= 1.0")
         _check(
             self.line_spacing >= self.line_spacing_floor, "typeset.line_spacing must be >= floor"
@@ -288,6 +294,13 @@ class AppConfig:
         data["_version"] = __version__
         blob = json.dumps(data, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
         return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+    def upgrade(self, section: str, key: str) -> bool:
+        """Is the v0.2.0 upgrade flag ``section.key`` enabled under the active profile?"""
+        value = getattr(getattr(self, section), key)
+        if value not in ("auto", "on", "off"):
+            raise ConfigError(f"{section}.{key} is not an upgrade flag")
+        return value == "on" or (value == "auto" and self.engine.profile == "v2")
 
     def replace(self, **overrides: Any) -> AppConfig:
         """Return a copy with dotted-key overrides applied and re-validated."""

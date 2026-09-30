@@ -117,7 +117,9 @@ def build_stages(
         ocr=build_router(cfg, manager, device),
         inpainter=RegionInpainter(cfg.inpaint, lama, residual),
         translator=build_translation_service(cfg, manager, resolve_cache_dir(cfg), tm_pairs),
-        typesetter=Typesetter(cfg.typeset, FontRegistry()),
+        typesetter=Typesetter(
+            cfg.typeset, FontRegistry(), cfg.upgrade("typeset", "source_size_cap")
+        ),
     )
 
 
@@ -675,7 +677,9 @@ def rerender(
     doc = doc or PageDocument.load(sidecar)
     cfg = settings_config(doc, fallback, overrides or {})
     original, clean = load_work_images(doc, sidecar)
-    ts = Typesetter(cfg.typeset, registry or FontRegistry())
+    ts = Typesetter(
+        cfg.typeset, registry or FontRegistry(), cfg.upgrade("typeset", "source_size_cap")
+    )
     render = typeset_page(
         doc,
         original,

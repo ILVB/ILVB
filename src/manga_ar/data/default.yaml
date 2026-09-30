@@ -135,6 +135,8 @@ typeset:
   contrast_target: 4.5
   strip_harakat: true
   strategy: shape         # shape (per-line spans from the bubble mask) | rect (inscribed box)
+  source_size_cap: auto   # v2 upgrade (auto|on|off): size ceiling from the original text
+  source_size_factor: 1.25  # ceiling = factor x original line height (column width if vertical)
 
 output:
   format: png             # png | jpg | webp | cbz

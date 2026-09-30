@@ -107,9 +107,13 @@ class _Rows:
 class Typesetter:
     """Pure layout + rendering of Arabic text into regions (A14)."""
 
-    def __init__(self, cfg: TypesetConfig, registry: FontRegistry | None = None) -> None:
+    def __init__(
+        self, cfg: TypesetConfig, registry: FontRegistry | None = None,
+        source_size_cap: bool = False,
+    ) -> None:  # fmt: skip
         self.cfg = cfg
         self.registry = registry or FontRegistry()
+        self.source_size_cap = source_size_cap  # resolved by AppConfig.upgrade (v2 profile)
         from PIL import features
 
         self.raqm = bool(features.check("raqm"))
@@ -222,14 +226,26 @@ class Typesetter:
         return choice
 
     # ------------------------------------------------------------------ fit
-    def _size_bounds(self, geom: Geometry, page_h: int) -> tuple[int, int]:
+    def _size_bounds(
+        self, geom: Geometry, page_h: int, ceiling: int | None = None
+    ) -> tuple[int, int]:
         lo = max(self.cfg.min_size_px, round(self.cfg.min_size_page_frac * page_h))
         rows = _Rows(geom.mask)
         usable = max(1, rows.bottom - rows.top)
         hi = min(
             round(self.cfg.max_size_safe_frac * usable), round(self.cfg.max_size_page_frac * page_h)
         )
+        if ceiling is not None:
+            hi = min(hi, ceiling)  # E-09: short strings never balloon past the original
         return lo, max(lo, hi)
+
+    def source_ceiling(self, region: Region) -> int | None:
+        """Size ceiling from the original lettering (v2, E-09): factor x the median line
+        height (column width for vertical text); None without line geometry."""
+        if not self.source_size_cap or not region.lines:
+            return None
+        extents = sorted(b.width if region.vertical else b.height for b in region.lines)
+        return max(1, round(self.cfg.source_size_factor * extents[len(extents) // 2]))
 
     def _try(
         self,
@@ -347,6 +363,7 @@ class Typesetter:
         spacing: float,
         outline: bool,
         fixed_size: int | None = None,
+        ceiling: int | None = None,
     ) -> Placement | None:
         rows = _Rows(geom.mask)
         rect = None
@@ -356,7 +373,7 @@ class Typesetter:
                 return None
         if fixed_size is not None:
             return self._try(geom, rows, words, engine, fixed_size, spacing, outline, rect)
-        lo, hi = self._size_bounds(geom, page_h)
+        lo, hi = self._size_bounds(geom, page_h, ceiling)
         top = hi
         best = None
         while lo <= hi:
@@ -397,7 +414,10 @@ class Typesetter:
         engine = self.engine_for(text, region.override.font)
         geom = self.geometry(region, page_shape)
         ladder: list[str] = []
-        placement = self._search(geom, words, engine, h, self.cfg.line_spacing, outline, fixed)
+        ceiling = self.source_ceiling(region)
+        placement = self._search(
+            geom, words, engine, h, self.cfg.line_spacing, outline, fixed, ceiling
+        )
         if placement is None and fixed is None:
             steps: list[tuple[str, dict[str, float | bool]]] = [
                 ("line-spacing-floor", {"spacing": self.cfg.line_spacing_floor}),
@@ -422,7 +442,7 @@ class Typesetter:
                 geom = self.geometry(region, page_shape, padding_floor)
                 if extend and clean is not None:
                     geom = self.extended_geometry(region, clean, geom)
-                placement = self._search(geom, words, engine, h, spacing, outline)
+                placement = self._search(geom, words, engine, h, spacing, outline, None, ceiling)
                 if placement is not None:
                     break
         if placement is None:

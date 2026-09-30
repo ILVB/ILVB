@@ -160,3 +160,23 @@ def test_e16_reading_direction_rtl_vs_ltr() -> None:
 def test_e18_dark_bubble_gets_light_text() -> None:
     p = TS.layout(_bubble(240, 300, fill=(15, 15, 15)), "لا تقترب", (340, 280))
     assert p.text_rgb == WHITE
+
+
+def test_e09_short_text_is_capped_by_the_original_text_height() -> None:
+    region = _bubble(300, 300)
+    region.lines = [BBox(140, 150, 180, 170)]  # the original "!" was 20 px tall
+    legacy = TS.layout(region, "أوه!", (340, 340))
+    capped_ts = Typesetter(CFG.typeset, FontRegistry(), source_size_cap=True)
+    capped = capped_ts.layout(region, "أوه!", (340, 340))
+    assert capped.size <= round(CFG.typeset.source_size_factor * 20) < legacy.size
+    floor = max(CFG.typeset.min_size_px, round(CFG.typeset.min_size_page_frac * 340))
+    assert capped.size >= floor  # never below the legibility floor
+    tall = _bubble(300, 300)
+    tall.vertical, tall.lines = True, [BBox(150, 60, 172, 260)]  # vertical: column width
+    assert capped_ts.source_ceiling(tall) == round(CFG.typeset.source_size_factor * 22)
+    v2 = load_config(overrides={"engine.profile": "v2"}, environ={})
+    assert v2.upgrade("typeset", "source_size_cap") and not CFG.upgrade(
+        "typeset", "source_size_cap"
+    )
+    off = v2.replace(**{"typeset.source_size_cap": "off"})
+    assert not off.upgrade("typeset", "source_size_cap")  # ablation switch
