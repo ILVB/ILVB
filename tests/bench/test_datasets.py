@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 from collections import Counter
 from pathlib import Path
@@ -30,6 +31,17 @@ def test_test_split_is_sealed() -> None:
         datasets.load_split("test", verify=False)
     with pytest.raises(datasets.SealedSplitError):
         datasets.SealedCapability(object(), "sneaky")
+
+
+def test_sealed_access_is_logged_and_purpose_bound(tmp_path: Path) -> None:
+    log = tmp_path / "access.jsonl"
+    cap = datasets._issue("freeze-baseline", log=log)
+    assert cap.purpose == "freeze-baseline"
+    entry = json.loads(log.read_text(encoding="utf-8").splitlines()[0])
+    assert entry["purpose"] == "freeze-baseline" and len(entry["head"]) == 40
+    with pytest.raises(datasets.SealedSplitError, match="purpose"):
+        datasets._issue("peek", log=log)  # negative control: arbitrary purposes are refused
+    assert len(log.read_text(encoding="utf-8").splitlines()) == 1
 
 
 @pytest.mark.integration

@@ -1,7 +1,9 @@
 """Dataset access with a sealed test split (step 0.3.3).
 
 dev (tuning) and val (model selection) load freely. The test split loads only with a
-`SealedCapability`, which only `tools/validate_phase1.py` issues (and logs). Content is
+`SealedCapability`, issued for two purposes: the one-time baseline freeze
+(`tools/freeze_baseline.py`) and the gate (`tools/validate_phase1.py`). Every issue is
+appended to the committed access log `benchmarks/results/sealed_access.jsonl`. Content is
 verified against the committed manifest's SHA-256 values on every load.
 """
 
@@ -9,7 +11,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +22,8 @@ from benchmarks.schema import GtPage
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_DIR = ROOT / "benchmarks" / "manifests"
 DATA_DIR = ROOT / "benchmarks" / "cache"
+SEALED_LOG = ROOT / "benchmarks" / "results" / "sealed_access.jsonl"
+SEALED_PURPOSES = frozenset({"freeze-baseline", "gate-phase1"})
 
 
 class SealedSplitError(PermissionError):
@@ -40,7 +46,17 @@ class SealedCapability:
         self.purpose = purpose
 
 
-def _issue(purpose: str) -> SealedCapability:  # called by tools/validate_phase1.py only
+def _issue(purpose: str, log: Path = SEALED_LOG) -> SealedCapability:
+    """Open the test split for ``purpose`` and record it (freeze and gate scripts only)."""
+    if purpose not in SEALED_PURPOSES:
+        raise SealedSplitError(f"no test-split access for purpose {purpose!r}")
+    head = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "HEAD"], capture_output=True,
+                          text=True, check=True).stdout.strip()  # fmt: skip
+    entry = {"utc": datetime.now(UTC).isoformat(timespec="seconds"), "purpose": purpose,
+             "head": head}  # fmt: skip
+    log.parent.mkdir(parents=True, exist_ok=True)
+    with log.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(entry) + "\n")
     return SealedCapability(SealedCapability._token, purpose)
 
 
