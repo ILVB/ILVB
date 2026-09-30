@@ -235,7 +235,7 @@ class ModelManager:
                     "target*",
                 ],
             )
-        except Exception as exc:  # noqa: BLE001 - hub raises many transport/HTTP types
+        except Exception as exc:  # the hub raises many transport/HTTP exception types
             raise ModelUnavailableError(
                 self._manual_instructions(spec, f"{type(exc).__name__}: {exc}")
             ) from exc

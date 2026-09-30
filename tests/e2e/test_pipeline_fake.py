@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import zipfile
 from pathlib import Path
 from typing import Any
@@ -274,3 +275,27 @@ def test_region_language_override_on_resume(tmp_path: Path) -> None:
     translator = FakeTranslator()
     _run(_cfg(**{"output.resume": True}), [src], out, translator=translator)
     assert sorted(translator.sources) == ["ko", "zh"]
+
+
+@pytest.mark.skipif(os.name == "nt", reason="bytes paths are a POSIX API")
+def test_utf8_file_names_under_any_locale(tmp_path: Path) -> None:
+    """Arabic/Japanese file names created through bytes paths work under any locale
+    (surrogate-escaped names must not break reports or sidecars)."""
+    import io as _io
+
+    root = os.fsencode(tmp_path / "in")
+    os.mkdir(root)  # noqa: PTH102 - pathlib has no bytes-path API
+    buf = _io.BytesIO()
+    Image.fromarray(page()).save(buf, "PNG")
+    name = "صفحة_ページ_01.png".encode()
+    with open(os.path.join(root, name), "wb") as fh:  # noqa: PTH118, PTH123 - bytes path
+        fh.write(buf.getvalue())
+    out = tmp_path / "out"
+    report = _run(_cfg(), [tmp_path / "in"], out)
+    assert report.exit_code == EXIT_OK
+    assert report.pages[0].name == "in/صفحة_ページ_01.png"
+    saved = json.loads((out / "report.json").read_text(encoding="utf-8"))
+    assert saved["pages"][0]["name"] == "in/صفحة_ページ_01.png"
+    listing = os.listdir(os.fsencode(out / "in"))  # noqa: PTH208 - bytes listing on purpose
+    sidecars = [p for p in listing if p.endswith(b".mangaar.json")]
+    assert len(sidecars) == 1

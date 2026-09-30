@@ -65,9 +65,7 @@ def free_accelerator_memory() -> None:
             log.debug("mps.empty_cache failed: %s", exc)
 
 
-def run_with_cpu_fallback(
-    run: Callable[[str], T], device: str, label: str
-) -> tuple[T, str]:
+def run_with_cpu_fallback(run: Callable[[str], T], device: str, label: str) -> tuple[T, str]:
     """Run ``run(device)``; on OOM/accelerator failure free caches and retry on CPU."""
     try:
         return run(device), device

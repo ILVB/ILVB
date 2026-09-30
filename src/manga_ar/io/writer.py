@@ -47,7 +47,8 @@ def atomic_write_bytes(path: Path, data: bytes) -> None:
 
 
 def atomic_write_text(path: Path, text: str) -> None:
-    atomic_write_bytes(path, text.encode("utf-8"))
+    # "replace": a stray lone surrogate (undecodable file name) must never lose a report
+    atomic_write_bytes(path, text.encode("utf-8", "replace"))
 
 
 def encode_image(

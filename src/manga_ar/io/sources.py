@@ -15,7 +15,7 @@ from pathlib import Path, PurePosixPath
 from manga_ar.errors import ArchiveError, ImageLoadError
 from manga_ar.io.archive import ArchiveLimits, read_archive
 from manga_ar.io.loader import read_bytes
-from manga_ar.io.naming import is_archive_name, is_image_name, natural_key
+from manga_ar.io.naming import display_name, is_archive_name, is_image_name, natural_key
 from manga_ar.logging_setup import get_logger
 
 log = get_logger(__name__)
@@ -78,11 +78,11 @@ def collect_inputs(
             _collect_dir(path, add, out, limits, excluded)
         elif path.is_file():
             if is_archive_name(path.name):
-                _collect_archive(path, PurePosixPath(), path.name, add, out, limits)
+                _collect_archive(path, PurePosixPath(), display_name(path.name), add, out, limits)
             elif is_image_name(path.name):
                 add(
                     PageJob(
-                        name=path.name,
+                        name=display_name(path.name),
                         stem=path.stem,
                         rel_dir=PurePosixPath(),
                         group=str(path.parent.resolve()),
@@ -93,9 +93,11 @@ def collect_inputs(
                     )
                 )
             else:
-                out.problems.append(InputProblem(path.name, "unsupported file type"))
+                out.problems.append(InputProblem(display_name(path.name), "unsupported file type"))
         else:
-            out.problems.append(InputProblem(str(path), "no such file or directory", "failed"))
+            out.problems.append(
+                InputProblem(display_name(str(path)), "no such file or directory", "failed")
+            )
     return out
 
 
@@ -116,7 +118,7 @@ def _collect_dir(
     files.sort(key=lambda p: tuple(natural_key(part) for part in p.relative_to(root).parts))
     for path in files:
         rel = PurePosixPath(path.relative_to(root).as_posix())
-        name = f"{root.name}/{rel}"
+        name = display_name(f"{root.name}/{rel}")
         if is_archive_name(path.name):
             _collect_archive(path, PurePosixPath(root.name) / rel.parent, name, add, out, limits)
         elif is_image_name(path.name):

@@ -20,7 +20,7 @@ import numpy.typing as npt
 from PIL import Image, ImageFile, ImageOps, UnidentifiedImageError
 
 from manga_ar.errors import ImageLoadError
-from manga_ar.io.naming import long_path
+from manga_ar.io.naming import display_name, long_path
 from manga_ar.logging_setup import get_logger
 
 log = get_logger(__name__)
@@ -79,7 +79,7 @@ def read_bytes(path: Path) -> bytes:
 
 def load_image_file(path: Path, limits: LoadLimits | None = None) -> LoadedImage:
     """Load an image from disk (bytes first, so any path encoding works)."""
-    return load_image_bytes(read_bytes(path), path.name, limits)
+    return load_image_bytes(read_bytes(path), display_name(path.name), limits)
 
 
 def load_image_bytes(data: bytes, name: str, limits: LoadLimits | None = None) -> LoadedImage:

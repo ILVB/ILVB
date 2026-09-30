@@ -151,7 +151,10 @@ def test_icc_profile_kept_and_channel_order() -> None:
 
 def test_non_ascii_and_long_paths(tmp_path: Path) -> None:
     deep = tmp_path / ("مجلد_عربي_" * 6) / ("漫画フォルダ_" * 6)
-    deep.mkdir(parents=True)
+    try:
+        deep.mkdir(parents=True)
+    except UnicodeEncodeError:  # e.g. LANG=C with UTF-8 mode off: the OS API cannot
+        pytest.skip("this filesystem encoding cannot represent non-ASCII names")
     path = deep / "صفحة_ページ_01.png"
     path.write_bytes(png_bytes(gradient_rgb()))
     img = load_image_file(path)
