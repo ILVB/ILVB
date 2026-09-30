@@ -1,0 +1,107 @@
+# Source texts for the synthetic benchmark (step 0.3.2). Entries m01..m96 are the same
+# meaning in four languages (a parallel set), so one Arabic reference set serves all of
+# them (step 0.3.4). Splits are assigned per meaning id by hash (benchmarks/generators/
+# texts.py), never by hand, so no meaning appears in two splits.
+version: 1
+phrases:
+  m01: {ja: "本当に行くの？", zh: "你真的要去吗？", ko: "정말 갈 거야?", en: "Are you really going?"}
+  m02: {ja: "ちょっと待って！", zh: "等一下！", ko: "잠깐만!", en: "Wait a second!"}
+  m03: {ja: "ありがとう、助かったよ。", zh: "谢谢你，帮了大忙。", ko: "고마워, 덕분에 살았어.", en: "Thanks, you saved me."}
+  m04: {ja: "大丈夫、心配しないで。", zh: "别担心，我没事。", ko: "걱정 마, 난 괜찮아.", en: "Don't worry, I'm fine."}
+  m05: {ja: "どうしてここにいるの？", zh: "你为什么在这里？", ko: "왜 여기 있어?", en: "Why are you here?"}
+  m06: {ja: "もう遅いよ。", zh: "已经太晚了。", ko: "이미 늦었어.", en: "It's already too late."}
+  m07: {ja: "早く逃げろ！", zh: "快跑！", ko: "빨리 도망쳐!", en: "Run for it!"}
+  m08: {ja: "信じられない…", zh: "真不敢相信……", ko: "믿을 수가 없어...", en: "I can't believe it..."}
+  m09: {ja: "お腹がすいた。", zh: "我饿了。", ko: "배고파.", en: "I'm starving."}
+  m10: {ja: "明日また会おうね。", zh: "明天见。", ko: "내일 또 보자.", en: "See you tomorrow."}
+  m11: {ja: "それは秘密だよ。", zh: "这是秘密。", ko: "그건 비밀이야.", en: "That's a secret."}
+  m12: {ja: "絶対に負けない！", zh: "我绝对不会输！", ko: "절대 지지 않을 거야!", en: "I will never lose!"}
+  m13: {ja: "何を言っているんだ？", zh: "你在说什么？", ko: "무슨 소리야?", en: "What are you talking about?"}
+  m14: {ja: "静かにしてください。", zh: "请安静。", ko: "조용히 해 주세요.", en: "Please be quiet."}
+  m15: {ja: "やっと見つけた！", zh: "终于找到了！", ko: "드디어 찾았다!", en: "I finally found it!"}
+  m16: {ja: "一緒に帰ろう。", zh: "我们一起回家吧。", ko: "같이 집에 가자.", en: "Let's go home together."}
+  m17: {ja: "今日は雨が降りそうだ。", zh: "今天好像要下雨。", ko: "오늘은 비가 올 것 같아.", en: "Looks like it's going to rain."}
+  m18: {ja: "君のせいじゃない。", zh: "这不是你的错。", ko: "네 잘못이 아니야.", en: "It's not your fault."}
+  m19: {ja: "嘘をつくな！", zh: "别撒谎！", ko: "거짓말하지 마!", en: "Don't lie to me!"}
+  m20: {ja: "ここは危ないぞ。", zh: "这里很危险。", ko: "여기는 위험해.", en: "This place is dangerous."}
+  m21: {ja: "先生、質問があります。", zh: "老师，我有问题。", ko: "선생님, 질문이 있어요.", en: "Teacher, I have a question."}
+  m22: {ja: "行ってきます！", zh: "我出门了！", ko: "다녀오겠습니다!", en: "I'm heading out!"}
+  m23: {ja: "お帰りなさい。", zh: "欢迎回来。", ko: "어서 와.", en: "Welcome back."}
+  m24: {ja: "約束を忘れないで。", zh: "别忘了约定。", ko: "약속 잊지 마.", en: "Don't forget our promise."}
+  m25: {ja: "誰かいませんか？", zh: "有人吗？", ko: "누구 없어요?", en: "Is anyone there?"}
+  m26: {ja: "もう一度だけ頼む。", zh: "再求你一次。", ko: "한 번만 더 부탁할게.", en: "Just one more time, please."}
+  m27: {ja: "夢みたいだ。", zh: "简直像做梦一样。", ko: "꿈만 같아.", en: "It's like a dream."}
+  m28: {ja: "そんなはずはない！", zh: "不可能！", ko: "그럴 리가 없어!", en: "That's impossible!"}
+  m29: {ja: "少し休もうか。", zh: "休息一下吧。", ko: "잠깐 쉬자.", en: "Let's take a short break."}
+  m30: {ja: "準備はできたか？", zh: "准备好了吗？", ko: "준비됐어?", en: "Are you ready?"}
+  m31: {ja: "私に任せて。", zh: "交给我吧。", ko: "나한테 맡겨.", en: "Leave it to me."}
+  m32: {ja: "時間がない！", zh: "没时间了！", ko: "시간이 없어!", en: "There's no time!"}
+  m33: {ja: "手伝ってくれる？", zh: "能帮我一下吗？", ko: "좀 도와줄래?", en: "Can you give me a hand?"}
+  m34: {ja: "本気で言ってるの？", zh: "你是认真的吗？", ko: "진심이야?", en: "Are you serious?"}
+  m35: {ja: "気をつけてね。", zh: "小心点。", ko: "조심해.", en: "Be careful."}
+  m36: {ja: "すごい力だ…", zh: "好强的力量……", ko: "엄청난 힘이야...", en: "What incredible power..."}
+  m37: {ja: "止まれ！", zh: "站住！", ko: "멈춰!", en: "Stop right there!"}
+  m38: {ja: "答えを教えて。", zh: "告诉我答案。", ko: "답을 알려 줘.", en: "Tell me the answer."}
+  m39: {ja: "家族を守りたい。", zh: "我想保护家人。", ko: "가족을 지키고 싶어.", en: "I want to protect my family."}
+  m40: {ja: "また失敗した。", zh: "又失败了。", ko: "또 실패했어.", en: "I failed again."}
+  m41: {ja: "花ちゃん、こっちだよ！", zh: "小花，这边！", ko: "하나야, 이쪽이야!", en: "Hana, over here!"}
+  m42: {ja: "蓮くんは遅刻だ。", zh: "小莲又迟到了。", ko: "렌은 또 지각이야.", en: "Ren is late again."}
+  m43: {ja: "この道で合ってる？", zh: "这条路对吗？", ko: "이 길이 맞아?", en: "Is this the right way?"}
+  m44: {ja: "怖くなんかないさ。", zh: "我才不害怕呢。", ko: "하나도 안 무서워.", en: "I'm not scared at all."}
+  m45: {ja: "最後まで戦う！", zh: "战斗到最后！", ko: "끝까지 싸울 거야!", en: "I'll fight to the end!"}
+  m46: {ja: "何か変な音がした。", zh: "好像有奇怪的声音。", ko: "이상한 소리가 났어.", en: "I heard a strange noise."}
+  m47: {ja: "忘れ物はない？", zh: "东西都带齐了吗？", ko: "빠뜨린 거 없어?", en: "Did you forget anything?"}
+  m48: {ja: "おやすみなさい。", zh: "晚安。", ko: "잘 자.", en: "Good night."}
+  m49: {ja: "昨日の夜どこに行ったの？", zh: "你昨晚去哪儿了？", ko: "어젯밤에 어디 갔었어?", en: "Where did you go last night?"}
+  m50: {ja: "ごめん、私のせいだ。", zh: "对不起，是我的错。", ko: "미안해, 내 잘못이야.", en: "I'm sorry, it was my fault."}
+  m51: {ja: "急いで、電車が出るよ！", zh: "快点，火车要开了！", ko: "서둘러, 기차가 떠나!", en: "Hurry up, the train is leaving!"}
+  m52: {ja: "お前は誰だ？", zh: "你是谁？", ko: "너는 누구야?", en: "Who are you?"}
+  m53: {ja: "わからない。", zh: "我不明白。", ko: "모르겠어.", en: "I don't understand."}
+  m54: {ja: "どうか許してください。", zh: "请原谅我。", ko: "제발 용서해 줘.", en: "Please forgive me."}
+  m55: {ja: "これが初めてなんだ。", zh: "这是我第一次。", ko: "이번이 처음이야.", en: "This is my first time."}
+  m56: {ja: "一緒に食べよう。", zh: "一起吃饭吧。", ko: "같이 먹자.", en: "Let's eat together."}
+  m57: {ja: "遅いぞ！", zh: "你迟到了！", ko: "늦었잖아!", en: "You're late!"}
+  m58: {ja: "君を守る。", zh: "我会保护你。", ko: "내가 너를 지킬게.", en: "I'll protect you."}
+  m59: {ja: "これはいくらですか？", zh: "这个多少钱？", ko: "이거 얼마예요?", en: "How much is this?"}
+  m60: {ja: "嫌な予感がする。", zh: "我有不好的预感。", ko: "불길한 예감이 들어.", en: "I have a bad feeling about this."}
+  m61: {ja: "返せ！", zh: "还给我！", ko: "돌려줘!", en: "Give it back!"}
+  m62: {ja: "今日は寒いね。", zh: "今天好冷啊。", ko: "오늘은 춥네.", en: "It's cold today."}
+  m63: {ja: "鍵はどこ？", zh: "钥匙在哪里？", ko: "열쇠는 어디 있어?", en: "Where is the key?"}
+  m64: {ja: "やっぱりね。", zh: "我就知道。", ko: "역시 그럴 줄 알았어.", en: "I knew it."}
+  m65: {ja: "それに触るな！", zh: "别碰那个！", ko: "그거 만지지 마!", en: "Don't touch that!"}
+  m66: {ja: "君の番だよ。", zh: "轮到你了。", ko: "네 차례야.", en: "It's your turn."}
+  m67: {ja: "やったぞ！", zh: "我们成功了！", ko: "해냈다!", en: "We did it!"}
+  m68: {ja: "疲れた。", zh: "我累了。", ko: "피곤해.", en: "I'm tired."}
+  m69: {ja: "ドアを開けろ！", zh: "开门！", ko: "문 열어!", en: "Open the door!"}
+  m70: {ja: "本当なの？", zh: "是真的吗？", ko: "정말이야?", en: "Is it true?"}
+  m71: {ja: "誰も知らない。", zh: "没有人知道。", ko: "아무도 몰라.", en: "Nobody knows."}
+  m72: {ja: "あそこを見て！", zh: "看那边！", ko: "저기 봐!", en: "Look over there!"}
+  m73: {ja: "家に帰りたい。", zh: "我想回家。", ko: "집에 가고 싶어.", en: "I want to go home."}
+  m74: {ja: "ごちそうさまでした。", zh: "谢谢款待。", ko: "잘 먹었습니다.", en: "Thank you for the meal."}
+  m75: {ja: "今何時？", zh: "现在几点了？", ko: "지금 몇 시야?", en: "What time is it?"}
+  m76: {ja: "助けて！", zh: "救救我！", ko: "살려 줘!", en: "Please help me!"}
+  m77: {ja: "宿題を忘れた。", zh: "我忘了作业。", ko: "숙제를 잊어버렸어.", en: "I forgot my homework."}
+  m78: {ja: "痛い！", zh: "好痛！", ko: "아파!", en: "That hurts!"}
+  m79: {ja: "すごいね！", zh: "你太厉害了！", ko: "대단하다!", en: "You're amazing!"}
+  m80: {ja: "少し考えさせて。", zh: "让我想一想。", ko: "좀 생각해 볼게.", en: "Let me think about it."}
+  m81: {ja: "敵が来るぞ！", zh: "敌人来了！", ko: "적이 온다!", en: "The enemy is coming!"}
+  m82: {ja: "すぐ戻る。", zh: "我马上回来。", ko: "금방 돌아올게.", en: "I'll be right back."}
+  m83: {ja: "内緒にしてね。", zh: "要保密哦。", ko: "비밀로 해 줘.", en: "Keep it quiet."}
+  m84: {ja: "おいしい！", zh: "好吃！", ko: "맛있다!", en: "It's delicious!"}
+  m85: {ja: "あきらめるな！", zh: "别放弃！", ko: "포기하지 마!", en: "Don't give up!"}
+  m86: {ja: "財布をなくした。", zh: "我的钱包丢了。", ko: "지갑을 잃어버렸어.", en: "I lost my wallet."}
+  m87: {ja: "医者を呼んで！", zh: "快叫医生！", ko: "의사를 불러!", en: "Call the doctor!"}
+  m88: {ja: "何かがおかしい。", zh: "有点不对劲。", ko: "뭔가 이상해.", en: "Something is wrong."}
+  m89: {ja: "一緒に来て。", zh: "跟我来。", ko: "나랑 같이 가자.", en: "Come with me."}
+  m90: {ja: "会いたいよ。", zh: "我想你了。", ko: "보고 싶어.", en: "I miss you."}
+  m91: {ja: "ここはどこ？", zh: "这是哪里？", ko: "여기가 어디야?", en: "Where are we?"}
+  m92: {ja: "危なかった。", zh: "好险。", ko: "큰일 날 뻔했어.", en: "That was close."}
+  m93: {ja: "頼りにしてるよ。", zh: "就靠你了。", ko: "너만 믿을게.", en: "I'm counting on you."}
+  m94: {ja: "始めよう。", zh: "开始吧。", ko: "시작하자.", en: "Let's start."}
+  m95: {ja: "誕生日おめでとう！", zh: "生日快乐！", ko: "생일 축하해!", en: "Happy birthday!"}
+  m96: {ja: "さようなら。", zh: "再见。", ko: "안녕히 가세요.", en: "Goodbye."}
+sfx:
+  ja: ["ドン", "バン", "ゴゴゴ", "ドキドキ", "ザッ", "ガシャン"]
+  zh: ["砰", "轰", "咚咚", "啪", "哗", "嗖"]
+  ko: ["쾅", "두근두근", "쿵", "휙", "탕", "쨍그랑"]
+  en: ["BOOM", "BANG", "WHAM", "THUD", "CRASH", "WHOOSH"]

@@ -33,6 +33,7 @@ class GtRegion(_Strict):
     safe_mask: Rle  # where typeset ink may go (evaluation ground truth)
     reading_order: int
     speaker: str | None = None
+    source_id: str = ""  # meaning id in the text bank (links parallel sources/references)
     font: str = ""
     font_size_px: float = 0.0  # size of the original lettering
     background: Literal["flat", "textured"] = "flat"
