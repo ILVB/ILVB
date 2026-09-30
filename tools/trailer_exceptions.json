@@ -1,0 +1,65 @@
+{
+ "_comment": "Commits whose Phase/Step lines were separated from the git trailer block by a blank line (history cannot be rewritten: no force-push). The audit verifies each body still carries exactly these values and warns on every run. Append-only; the commit-msg hook prevents new entries. See docs/LEDGER.md (step 0.5).",
+ "commits": [
+  {
+   "commit": "e3a6d43cdc16026000452ad93a8768dfb1afd83e",
+   "subject": "feat(bench): inpainting, typesetting and bootstrap metrics",
+   "phase": "0",
+   "step": "0.2.3"
+  },
+  {
+   "commit": "5543bce26d9a1a833c753a1e14472b75503dca72",
+   "subject": "feat(bench): translation metrics, reading order and metric definitions",
+   "phase": "0",
+   "step": "0.2.3"
+  },
+  {
+   "commit": "206f9dbb63ab8fcddf8a66f4bf40131d1fe9bfb0",
+   "subject": "fix(bench): baseline adapter finds cached models and declares erase masks",
+   "phase": "0",
+   "step": "0.2.3"
+  },
+  {
+   "commit": "748218e490354a8e93710f939a62425201f5337f",
+   "subject": "feat(bench): score raw adapter results into per-page metric rows",
+   "phase": "0",
+   "step": "0.2.3"
+  },
+  {
+   "commit": "9968436591a68c9a0b92d0d27cdab0636dce3a82",
+   "subject": "feat(bench): run_benchmark harness and result summaries",
+   "phase": "0",
+   "step": "0.2.3"
+  },
+  {
+   "commit": "848a7e30ba23a9df50cfef077517c3190d355574",
+   "subject": "feat(tools): one-time baseline freeze and a logged sealed-split capability",
+   "phase": "0",
+   "step": "0.2.4"
+  },
+  {
+   "commit": "098673d92a7c508f36073eba386397b487f0b566",
+   "subject": "fix(bench): environment snapshot ignores its own file when checking dirty state",
+   "phase": "0",
+   "step": "0.4"
+  },
+  {
+   "commit": "ec3f3d257334d404941f6ec37983d008088daac5",
+   "subject": "chore(bench): record the benchmark environment snapshot",
+   "phase": "0",
+   "step": "0.4"
+  },
+  {
+   "commit": "828a2740b7be5801b02fa778144e9ba329ca62bf",
+   "subject": "fix(bench): reproducible raw-output digest",
+   "phase": "0",
+   "step": "0.2.3"
+  },
+  {
+   "commit": "02f1b9f544778029ab772909660bc4840cfe197a",
+   "subject": "docs(ledger): record steps 0.4 and 0.2.3",
+   "phase": "0",
+   "step": "0.2.3"
+  }
+ ]
+}
