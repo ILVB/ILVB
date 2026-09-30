@@ -54,6 +54,8 @@ offline-mt = ["transformers>=4.40", "sentencepiece>=0.2", "sacremoses>=0.1", "to
 ctd = ["onnxruntime>=1.17,<2"]
 gpu = ["onnxruntime-gpu>=1.17,<2"]
 gui = ["gradio>=6,<7", "gradio_client>=2,<3"]
+# Benchmark harness and quality gates (v0.2.0 Phase 0/1).
+bench = ["pydantic>=2.6,<3"]
 all = [
   "manga-arabic-translator[rapid,ocr,lama,offline-mt,gui]",
 ]
@@ -92,7 +94,7 @@ override-dependencies = [
 [tool.ruff]
 line-length = 100
 target-version = "py310"
-src = ["src", "tests", "scripts", "spikes"]
+src = [".", "src", "tests", "scripts", "spikes"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "N", "SIM", "RUF", "PTH", "BLE", "T20"]
