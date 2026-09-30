@@ -32,6 +32,11 @@ def build_detector(cfg: AppConfig, manager: ModelManager) -> TextDetector:
             from manga_ar.detect.rapid_detector import RapidDbDetector
 
             return RapidDbDetector(cfg.detect, classical)
+        if name == "db_primary":
+            from manga_ar.detect.db_primary import DbPrimaryDetector
+            from manga_ar.detect.rapid_detector import RapidDbDetector
+
+            return DbPrimaryDetector(RapidDbDetector(cfg.detect, classical), classical)
         if name == "hybrid":
             from manga_ar.detect.hybrid import HybridDetector
             from manga_ar.detect.rapid_detector import RapidDbDetector

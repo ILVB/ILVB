@@ -43,7 +43,8 @@ tiling:
 
 detect:
   detector: auto          # auto(=classical) | classical | hybrid (classical + PP-OCR DB for text
-                          # over artwork) | rapid | craft | ctd (ctd: GPL-3.0 weights, opt-in)
+                          # over artwork) | rapid | db_primary (PP-OCR DB extended by classical
+                          # blocks) | craft | ctd (ctd: GPL-3.0 weights, opt-in)
   sfx: skip               # skip | translate
   min_glyph_px: 6         # smallest glyph side considered text
   max_glyph_frac: 0.12    # largest glyph side as a fraction of the page's shorter side
