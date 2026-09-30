@@ -18,13 +18,16 @@ from manga_ar.schemas import BBox
 class RapidDbDetector:
     name = "rapid"
 
-    def __init__(self, cfg: DetectConfig, classical: ClassicalDetector) -> None:
+    def __init__(
+        self, cfg: DetectConfig, classical: ClassicalDetector, geometry_from_boxes: bool = False
+    ) -> None:
         if importlib.util.find_spec("rapidocr_onnxruntime") is None:
             raise ModelUnavailableError("rapidocr_onnxruntime is not installed (extra: rapid)")
         from rapidocr_onnxruntime import RapidOCR
 
         self.cfg = cfg
         self.classical = classical
+        self.geometry_from_boxes = geometry_from_boxes
         self._engine: Any = RapidOCR()
 
     def detect(self, rgb: RgbArray) -> list[TextBlock]:
@@ -44,4 +47,4 @@ class RapidDbDetector:
                     int(np.ceil(q[:, 1].max())),
                 )
             )
-        return blocks_from_boxes(rgb, boxes, self.classical, self.name)
+        return blocks_from_boxes(rgb, boxes, self.classical, self.name, self.geometry_from_boxes)

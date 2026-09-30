@@ -28,6 +28,7 @@ def build_detector(cfg: AppConfig, manager: ModelManager) -> TextDetector:
     """
     name = resolve_detector(cfg)
     classical = ClassicalDetector(cfg.detect)
+    orient = cfg.upgrade("detect", "db_geometry")
     if name == "classical":
         return classical
     try:
@@ -38,17 +39,17 @@ def build_detector(cfg: AppConfig, manager: ModelManager) -> TextDetector:
         if name == "rapid":
             from manga_ar.detect.rapid_detector import RapidDbDetector
 
-            return RapidDbDetector(cfg.detect, classical)
+            return RapidDbDetector(cfg.detect, classical, orient)
         if name == "db_primary":
             from manga_ar.detect.db_primary import DbPrimaryDetector
             from manga_ar.detect.rapid_detector import RapidDbDetector
 
-            return DbPrimaryDetector(RapidDbDetector(cfg.detect, classical), classical)
+            return DbPrimaryDetector(RapidDbDetector(cfg.detect, classical, orient), classical)
         if name == "hybrid":
             from manga_ar.detect.hybrid import HybridDetector
             from manga_ar.detect.rapid_detector import RapidDbDetector
 
-            return HybridDetector(classical, RapidDbDetector(cfg.detect, classical))
+            return HybridDetector(classical, RapidDbDetector(cfg.detect, classical, orient))
         from manga_ar.detect.craft_detector import CraftDetector
 
         return CraftDetector(cfg.detect, manager, classical, offline=cfg.runtime.offline)

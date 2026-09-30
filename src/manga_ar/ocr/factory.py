@@ -22,4 +22,6 @@ def build_engines(cfg: AppConfig, manager: ModelManager, device: str) -> dict[st
 
 
 def build_router(cfg: AppConfig, manager: ModelManager, device: str) -> OcrRouter:
-    return OcrRouter(build_engines(cfg, manager, device), cfg.ocr)
+    return OcrRouter(
+        build_engines(cfg, manager, device), cfg.ocr, cfg.upgrade("ocr", "clean_texture")
+    )

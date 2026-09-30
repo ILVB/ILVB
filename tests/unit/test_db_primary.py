@@ -53,11 +53,15 @@ def test_classical_never_adds_standalone_blocks() -> None:
 
 
 def test_agreeing_classical_block_supplies_the_geometry_on_clean_backgrounds() -> None:
-    db = Fixed([_block(10, 10, 40, 60, "rapid")])
     for vertical in (True, False):
+        db = Fixed([_block(10, 10, 40, 60, "rapid", vertical=vertical)])
         classical = Fixed([_block(10, 11, 41, 60, "classical", vertical=vertical)])
         (clean,) = DbPrimaryDetector(db, classical).detect(RGB)  # type: ignore[arg-type]
         assert clean.detector == "classical"
+        flipped = Fixed([_block(10, 11, 41, 60, "classical", vertical=not vertical)])
+        (kept,) = DbPrimaryDetector(db, flipped).detect(RGB)  # type: ignore[arg-type]
+        assert kept.detector == "rapid"  # a classical block never flips the orientation
+    db = Fixed([_block(10, 10, 40, 60, "rapid")])
     classical = Fixed([_block(10, 11, 41, 60, "classical")])
     (textured,) = DbPrimaryDetector(db, classical).detect(_textured())  # type: ignore[arg-type]
     assert textured.detector == "rapid"  # texture-polluted classical geometry is not used
@@ -94,3 +98,12 @@ def test_auto_resolves_by_profile() -> None:
     assert resolve_detector(v2) == "db_primary"
     pinned = load_config(overrides={"engine.profile": "v2", "detect.detector": "ctd"}, environ={})
     assert resolve_detector(pinned) == "ctd"  # an explicit choice always wins
+
+
+def test_orientation_from_line_boxes() -> None:
+    from manga_ar.detect.adapters import box_orientation
+
+    assert box_orientation([BBox(0, 0, 90, 20), BBox(0, 30, 80, 50)]) is False  # wide lines
+    assert box_orientation([BBox(0, 0, 20, 90)]) is True  # a tall column
+    assert box_orientation([BBox(0, 0, 22, 20)]) is None  # "!" alone: undecided
+    assert box_orientation([]) is None

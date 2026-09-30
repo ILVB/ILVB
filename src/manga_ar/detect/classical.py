@@ -295,11 +295,14 @@ class ClassicalDetector:
 
     # ------------------------------------------------------------- blocks
     def make_block(
-        self, glyph_mask: BoolArray, detector: str, polarity: str = "dark", score: float = 0.9
-    ) -> TextBlock | None:
+        self, glyph_mask: BoolArray, detector: str, polarity: str = "dark", score: float = 0.9,
+        vertical: bool | None = None, lines: list[BBox] | None = None,
+    ) -> TextBlock | None:  # fmt: skip
         """Build a TextBlock (orientation, lines, furigana) from a full-page glyph mask.
 
-        Used by the ML detector adapters, which supply their own text pixels.
+        Used by the ML detector adapters, which supply their own text pixels and, when they
+        know them, the orientation (``vertical``; None = decide from the glyphs) and the line
+        boxes (page coordinates; None = segment the glyph mask).
         """
         box = BBox.from_mask(glyph_mask)
         if box is None:
@@ -308,7 +311,9 @@ class ClassicalDetector:
         n, _, stats, _ = cv2.connectedComponentsWithStats(crop.astype(np.uint8), 8)
         sizes = np.maximum(stats[1:, 2], stats[1:, 3]) if n > 1 else np.array([box.height])
         size = float(np.percentile(sizes, 75))
-        block = self._to_block(_Group(glyph_mask, box, size, max(1, n - 1), polarity, 0))
+        block = self._to_block(
+            _Group(glyph_mask, box, size, max(1, n - 1), polarity, 0), vertical, lines
+        )
         block.detector = detector
         block.score = score
         return block
@@ -317,11 +322,19 @@ class ClassicalDetector:
         """Polarity-aware ink mask of a page (public for adapters)."""
         return self._ink(gray, polarity) > 0
 
-    def _to_block(self, g: _Group) -> TextBlock:
+    def _to_block(
+        self, g: _Group, vertical: bool | None = None, given: list[BBox] | None = None
+    ) -> TextBlock:
         crop = g.mask[g.bbox.y0 : g.bbox.y1, g.bbox.x0 : g.bbox.x1]
         g.size = max(g.size, self._projection_size(crop))
-        vertical = self._orientation(crop, g.size)
-        lines, furigana = self._segment_lines(crop, g.size, vertical)
+        if vertical is None:
+            vertical = self._orientation(crop, g.size)
+        if given:
+            order = (lambda b: -b.x1) if vertical else (lambda b: b.y0)  # reading order
+            lines = [b.translate(-g.bbox.x0, -g.bbox.y0) for b in sorted(given, key=order)]
+            furigana: list[BBox] = []
+        else:
+            lines, furigana = self._segment_lines(crop, g.size, vertical)
         if lines:
             # line thickness (column width / row height) is a better glyph-size estimate
             # than component sizes, which under-count multi-part Hangul/Han glyphs.

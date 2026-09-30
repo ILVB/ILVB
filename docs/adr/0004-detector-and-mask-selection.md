@@ -82,3 +82,28 @@ Val, frozen v0.1.0 → v2 profile: CER 0.243 → **0.129** (−47 % relative; G-
 0.047 → 0.047, screentone −21.9 points, stylized −25.5, text_on_art −40.1, low-contrast −5.3,
 standard bubbles −4.1. The remaining weak spots are stylized (0.50), tiny_text (0.26) and
 text_on_art (0.23). Korean CER is 0.21.
+
+## Update — orientation, DB line geometry and texture suppression (steps 1.0.3–1.0.4)
+Three v2 upgrade flags (all `auto`: on under `v2`, off under `legacy`):
+- `detect.db_geometry`: when a block's DB line boxes are clearly wide (≥ 1.5 ×) or tall, they
+  fix its orientation and become its lines. Before this, 11 of 229 horizontal dev regions
+  were judged vertical and read as scrambled columns. Rows of screentone dots were also
+  segmented into spurious "lines" (e.g. "벼무 무 하 ; ; ; @ @ < < < …" joined before the text).
+  db_primary never lets a classical block flip a DB block's orientation.
+- `ocr.clean_texture`: on OCR crops only, when small-mark density is ≥ 15 per 1000 px
+  (screentone median 19.5, flat bubbles ≈ 8.5 on dev crops), glyph strokes and adjacent
+  punctuation are kept on a flat background. The page itself is never modified.
+
+| dev, v2 profile | CER | WER | screentone | ko | en |
+|---|---|---|---|---|---|
+| English route | 0.182 | 0.491 | 0.456 | 0.416 | 0.149 |
+| + orientation from DB boxes | 0.159 | 0.509 | 0.512 | 0.395 | 0.126 |
+| + texture suppression | 0.158 | 0.502 | 0.493 | 0.389 | 0.125 |
+| + DB boxes as lines (adopted) | **0.118** | 0.297 | **0.083** | **0.213** | 0.095 |
+| same, texture suppression off | 0.120 | 0.300 | 0.097 | 0.216 | 0.096 |
+
+Val, frozen v0.1.0 → adopted v2: CER 0.243 → **0.118** (−51 %), WER 0.821 → 0.274,
+detection F1 0.850 → 0.992, SSIM 0.835 → 0.953, residual 0.313 → 0.141. Every category is at
+or below v0.1.0 (vertical 0.047 = 0.047, screentone −27.6 points, stylized −28.4, text_on_art
+−42.4). Relative to the English-route step, English (0.103 → 0.108) and tiny_text
+(0.256 → 0.269) moved slightly; both remain well below v0.1.0.

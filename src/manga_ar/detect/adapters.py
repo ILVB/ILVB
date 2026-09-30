@@ -14,14 +14,35 @@ from manga_ar.schemas import BBox
 BoolArray = npt.NDArray[np.bool_]
 
 
+ASPECT = 1.5  # a line box this much wider than tall (or taller than wide) fixes orientation
+
+
+def box_orientation(boxes: list[BBox]) -> bool | None:
+    """Orientation from detector line boxes: False (horizontal), True (vertical), or None
+    when the boxes are too square to tell (e.g. a lone "!")."""
+    if not boxes:
+        return None
+    ratios = sorted(b.width / max(1, b.height) for b in boxes)
+    median = ratios[len(ratios) // 2]
+    if median >= ASPECT:
+        return False
+    if median <= 1 / ASPECT:
+        return True
+    return None
+
+
 def blocks_from_boxes(
-    rgb: RgbArray, boxes: list[BBox], classical: ClassicalDetector, name: str
-) -> list[TextBlock]:
+    rgb: RgbArray, boxes: list[BBox], classical: ClassicalDetector, name: str,
+    geometry_from_boxes: bool = False,
+) -> list[TextBlock]:  # fmt: skip
     """Group line boxes into blocks and extract exact text pixels inside them.
 
     Boxes are grouped by dilation (≈ half a line thickness). Text pixels are the
     polarity-aware ink inside the boxes; the polarity is chosen per block by which ink
-    covers the typical text fraction of the box area.
+    covers the typical text fraction of the box area. With ``geometry_from_boxes`` (v2), a
+    block whose line boxes are clearly wide or tall takes that orientation, and the boxes
+    themselves as its lines, instead of re-segmenting a glyph mask that may hold screentone
+    dots or hatching.
     """
     h, w = rgb.shape[:2]
     if not boxes:
@@ -43,10 +64,20 @@ def blocks_from_boxes(
         lfrac = float(light[region].mean()) if region.any() else 0.0
         polarity = "dark" if abs(dfrac - 0.2) <= abs(lfrac - 0.2) else "light"
         glyphs = region & (dark if polarity == "dark" else light)
-        block = classical.make_block(glyphs, name, polarity)
+        vertical, lines = None, None
+        if geometry_from_boxes:
+            members = [b.clip(w, h) for b in boxes if _label_at(labels, b.clip(w, h)) == i]
+            vertical = box_orientation(members)
+            lines = members if vertical is not None else None
+        block = classical.make_block(glyphs, name, polarity, vertical=vertical, lines=lines)
         if block is not None:
             blocks.append(block)
     return blocks
+
+
+def _label_at(labels: np.ndarray, box: BBox) -> int:
+    cx, cy = box.center
+    return int(labels[min(int(cy), labels.shape[0] - 1), min(int(cx), labels.shape[1] - 1)])
 
 
 def blocks_from_mask(

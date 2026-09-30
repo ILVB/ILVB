@@ -118,6 +118,7 @@ class DetectConfig:
     leak_max_page_fraction: float
     leak_min_solidity: float
     suppress_furigana: bool
+    db_geometry: Upgrade
 
     def __post_init__(self) -> None:
         _check(0 < self.nms_iou <= 1, "detect.nms_iou must be in (0, 1]")
@@ -135,6 +136,7 @@ class OcrConfig:
     preserve_decorations: bool
     verify_multi_engine: bool
     pass_through_latin: bool
+    clean_texture: Upgrade
 
     def __post_init__(self) -> None:
         known = {"manga_ocr", "easyocr", "rapid", "paddle"}

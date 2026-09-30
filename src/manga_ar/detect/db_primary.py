@@ -42,13 +42,14 @@ class DbPrimaryDetector:
         for cand in sorted(extra, key=lambda b: -b.bbox.area):
             if _textured_background(rgb, cand):
                 continue
-            agree = [b for b in blocks if b.bbox.iou(cand.bbox) >= AGREE_IOU]
+            same = [b for b in blocks if b.vertical == cand.vertical]  # never flip orientation
+            agree = [b for b in same if b.bbox.iou(cand.bbox) >= AGREE_IOU]
             if agree:
                 for b in agree:
                     blocks.remove(b)
                 blocks.append(cand)
                 continue
-            covered = [b for b in blocks if b.bbox.overlap_ratio(cand.bbox) >= MIN_COVER]
+            covered = [b for b in same if b.bbox.overlap_ratio(cand.bbox) >= MIN_COVER]
             if not covered:
                 continue
             base = sum(b.bbox.area for b in covered)

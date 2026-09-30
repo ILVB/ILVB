@@ -15,6 +15,7 @@ from manga_ar.logging_setup import get_logger
 from manga_ar.ocr.base import LineResult, OcrEngine, RgbArray
 from manga_ar.ocr.langid import classify_text, is_passthrough, script_consistency
 from manga_ar.ocr.postprocess import postprocess
+from manga_ar.ocr.preprocess import suppress_texture
 from manga_ar.ocr.reflow import reflow_column
 from manga_ar.ocr.suspicion import Verdict, assess
 from manga_ar.schemas import BBox, Flag, OcrCandidate, OcrResult, Region, RegionType
@@ -35,9 +36,12 @@ class _Candidate:
 class OcrRouter:
     """Selects engines per language, validates results and falls back on suspicion."""
 
-    def __init__(self, engines: Mapping[str, OcrEngine], cfg: OcrConfig) -> None:
+    def __init__(
+        self, engines: Mapping[str, OcrEngine], cfg: OcrConfig, clean_texture: bool = False
+    ) -> None:
         self.engines = dict(engines)
         self.cfg = cfg
+        self.clean_texture = clean_texture  # v2 upgrade ocr.clean_texture (step 1.0.4)
         self._broken: set[str] = set()  # engines that failed to load this run
 
     # ------------------------------------------------------------ engines
@@ -69,6 +73,8 @@ class OcrRouter:
             if stray.any():
                 stray = cv2.dilate(stray.astype(np.uint8), disk(1)) > 0
                 crop[stray & ~keep] = region.fill_color or (255, 255, 255)
+        if self.clean_texture:
+            crop = suppress_texture(crop)
         if upscale > 1.0:
             crop = cv2.resize(crop, None, fx=upscale, fy=upscale, interpolation=cv2.INTER_LANCZOS4)
         return crop, box
@@ -83,6 +89,8 @@ class OcrRouter:
             pad = 3 + int(0.1 * thickness)
             box = ln.expand(pad).clip(w, h)
             img = page[box.y0 : box.y1, box.x0 : box.x1].copy()
+            if self.clean_texture:
+                img = suppress_texture(img)
             if region.vertical:
                 img = reflow_column(img, size=size)
             scale = upscale
