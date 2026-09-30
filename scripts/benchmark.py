@@ -109,8 +109,8 @@ def section_detection(
 
 def section_ocr(
     pages: list[synth.SynthPage],
-    segmented: dict[str, list],
-    lines: list[str],  # type: ignore[type-arg]
+    segmented: dict[str, list],  # type: ignore[type-arg]
+    lines: list[str],
     timings: dict[str, list[float]],
 ) -> None:
     from manga_ar.ocr.factory import build_router
@@ -145,8 +145,8 @@ def section_ocr(
 
 def section_inpaint(
     pages: list[synth.SynthPage],
-    segmented: dict[str, list],
-    lines: list[str],  # type: ignore[type-arg]
+    segmented: dict[str, list],  # type: ignore[type-arg]
+    lines: list[str],
 ) -> None:
     from manga_ar.inpaint.lama import LamaInpainter
     from manga_ar.inpaint.strategy import RegionInpainter
@@ -262,6 +262,77 @@ class _FlakyProvider:
         return f"ترجمة {len(text)}"
 
 
+def section_typeset(
+    pages: list[synth.SynthPage],
+    segmented: dict[str, list],  # type: ignore[type-arg]
+    lines: list[str],
+    timings: dict[str, list[float]],
+) -> None:
+    """Lay out corpus strings (cycled, short to very long) into every detected region."""
+    import json
+
+    from manga_ar.schemas import PageDocument, TranslationResult
+    from manga_ar.typeset.fonts import FontRegistry
+    from manga_ar.typeset.layout import Typesetter
+    from manga_ar.typeset.page import typeset_page
+
+    corpus = json.loads((ROOT / "tests" / "data" / "arabic_corpus.json").read_text("utf-8"))
+    texts = [item["text"] for item in corpus["canonical"]]
+    cfg = load_config(environ={})
+    ts = Typesetter(cfg.typeset, FontRegistry())
+    n = overflow = outside_regions = ladder_used = 0
+    sizes: list[float] = []
+    k = 0
+    for page in pages:
+        h, w = page.image.shape[:2]
+        regions = [replace(r, flags=set(r.flags)) for r in segmented[page.name]]
+        for r in regions:
+            r.translation = TranslationResult(provider="bench", text=texts[k % len(texts)])
+            k += 1
+        doc = PageDocument(source=page.name, width=w, height=h, regions=regions)
+        t0 = time.perf_counter()
+        out = typeset_page(doc, page.image, page.image, ts)
+        timings["typeset"].append(time.perf_counter() - t0)
+        for r in regions:
+            p = out.placements.get(r.id)
+            if p is None:
+                continue
+            n += 1
+            sizes.append(p.size / h)
+            ladder_used += bool(p.ladder)
+            if Flag.OVERFLOW_RISK in r.flags:
+                overflow += 1
+                continue
+            geom = p.geometry
+            assert geom is not None
+            allowed = np.zeros((h, w), np.uint8)
+            b = geom.box.clip(w, h)
+            allowed[b.y0 : b.y1, b.x0 : b.x1] = geom.mask[: b.height, : b.width]
+            allowed = cv2.dilate(allowed, np.ones((5, 5), np.uint8)) > 0
+            from manga_ar.typeset.render import render_layer
+
+            ink = render_layer((h, w), [p])[..., 3] > 40
+            outside_regions += bool((ink & ~allowed).any())
+    per_region = np.sum(timings["typeset"]) / max(1, n) * 1000
+    lines += [
+        "## Typesetting (corpus strings cycled into detected regions)",
+        "",
+        "| metric | value | gate |",
+        "|---|---|---|",
+        f"| regions typeset | {n} | — |",
+        f"| ink outside layout area (non-overflow regions) | {outside_regions} | 0 |",
+        f"| OVERFLOW_RISK (hard floor) | {overflow} ({overflow / max(1, n):.1%}) | reported |",
+        f"| regions needing ladder steps | {ladder_used} ({ladder_used / max(1, n):.1%}) | — |",
+        f"| mean font size / page height | {np.mean(sizes):.4f} | — |",
+        f"| mean time per region | {per_region:.1f} ms | < 50 ms (A13) |",
+        "",
+        "Texts are assigned regardless of bubble size (the 90-character sentence lands in "
+        "small bubbles too), so OVERFLOW_RISK here is a stress figure, not a typical rate. "
+        "ARVS L2–L7 results live in the test suite (DECISIONS D-030/D-031).",
+        "",
+    ]
+
+
 def section_translation(lines: list[str]) -> None:
     """Mocked failover statistics (fake providers, fake clock: no network, no sleeping)."""
     from manga_ar.schemas import BBox, OcrResult, Region
@@ -338,6 +409,7 @@ def main() -> int:
     if not args.no_ocr:
         section_ocr(pages, segmented, lines, timings)
     section_inpaint(pages, segmented, lines)
+    section_typeset(pages, segmented, lines, timings)
     section_translation(lines)
     lines += ["## Stage timings (CPU)", "", "| stage | mean / page | max |", "|---|---|---|"]
     for stage, vals in timings.items():

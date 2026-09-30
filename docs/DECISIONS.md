@@ -298,6 +298,103 @@ NFKC text). Identical sources on a page are translated once (dedupe).
 - Spacing is fixed; digit policy is western (default) or arabic_indic; decorations are
   re-appended; length is capped at 400 characters.
 
+**D-028 — Bidi shim (A3).** python-bidi 0.6 (Rust) resolves embedding levels correctly,
+including bracket pairs (N0), but does not apply L4 mirroring, so `على (OK)` would render
+as `)OK(`. The shim reads the resolved levels from `get_display_inner(text, "R", debug=True)`
+(per UTF-8 byte → per character), then applies L2 reordering and L4 mirroring (the
+`bidi.mirror.MIRRORED` table) itself. Lines without a mirrorable character use the plain
+Rust `get_display` fast path. Older pure-Python releases mirror on their own and serve as
+the fallback. python-bidi is LGPL-3.0; it is used as an unmodified dependency, which is
+compatible with the MIT licence of this project.
+
+**D-029 — Reshaper configuration (A4).** An explicit configuration is used:
+- the four lam-alef ligatures are on; ALLAH and the word/sentence ligatures are off, so
+  joining stays predictable;
+- tatweel is deleted and harakat are stripped (configurable);
+- `use_unshaped_instead_of_isolated` is chosen per font from its cmap. A font without
+  isolated presentation forms gets base letters, which render as isolated glyphs.
+
+Fonts that lack contextual presentation forms entirely (BalooBhaijaan2) are marked
+not `basic_ok` and are only offered on the RAQM path.
+
+**D-030 — ARVS thresholds (L5/L6).**
+- L5 counts connected components of ink < 200 (8-connectivity). A lower threshold split
+  Cairo's hairline anti-aliased joins into extra components (محمد counted 3 instead of 1).
+- The L5 direction oracle uses the probe "اب", whose first letter's ink must lie on the
+  right. An earlier "لا" probe failed for Changa's ligature design.
+- L6 compares per-word ink between the BASIC path and a HarfBuzz (RAQM) oracle. The
+  default threshold is IoU ≥ 0.90; Amiri needs 0.78 because its HarfBuzz rendering uses
+  contextual alternates the presentation-form path cannot reproduce (legible, same
+  letters, but different glyph variants).
+- L6 negative controls (unshaped text) must score ≤ 0.70 and at least 0.25 below the
+  correct render.
+
+**D-031 — ARVS L7 (OCR round-trip).** Setup:
+- EasyOCR `['ar','en']` (weights from GitHub releases; the only Arabic OCR reachable here);
+- 21 phrases at 48/60/72 px, plus 4 phrases laid out inside an elliptical bubble;
+- every `basic_ok` bundled font;
+- score = Levenshtein similarity after `normalize_ar` with whitespace removed.
+
+Thresholds:
+- ≥ 90 % of all samples must reach similarity ≥ 0.8, and ≥ 75 % per font. A single font
+  may have a few misreads; EasyOCR confuses some display-font glyphs.
+- Unshaped and not-reordered negative controls must have a mean similarity < 0.4.
+
+Measured:
+
+| Font | Samples ≥ 0.8 | Mean similarity |
+|---|---|---|
+| NotoNaskhArabic | 25/25 | 1.00 |
+| NotoSansArabic | 25/25 | 0.99 |
+| Amiri | 23/25 | 0.96 |
+| Cairo | 25/25 | 0.98 |
+| Tajawal | 24/25 | 0.97 |
+| TajawalBold | 25/25 | 0.99 |
+| Almarai | 25/25 | 1.00 |
+| AlmaraiBold | 25/25 | 1.00 |
+| Changa | 24/25 | 0.97 |
+| Lalezar | 25/25 | 0.99 |
+
+The negative controls scored 0.14–0.19 at calibration.
+
+**D-032 — Fit and overflow ladder (A6–A9).**
+- Strategy "shape": each line's available span is the padded bubble mask's longest run
+  over that line's ink band, so text follows the outline. Strategy "rect": the largest
+  inscribed rectangle, used for LEAK_FALLBACK or when requested.
+- Word widths are measured once at 100 px and scaled. Arabic joining never crosses a
+  space, so a line width is the sum of its words plus spaces. The best candidate is then
+  re-measured exactly, and candidates are verified in cost order.
+- Font size: integer binary search, then a probe of up to 3 sizes above the result.
+  Feasibility is not strictly monotonic with discrete line counts; without the probe,
+  "shape" occasionally lost to "rect".
+- Ladder order: line-spacing-floor → condensed (only when the font has a `wdth` axis)
+  → padding-floor → extend-uniform → hard-floor.
+  - extend-uniform: bubbles with a trusted mask use their unpadded interior and never
+    leave it; free text flood-fills uniform background on the clean page.
+  - hard-floor: minimum size, greedy wrap, flag OVERFLOW_RISK. The block is shifted to
+    stay inside the image and is never clipped.
+- Colours: black or white by WCAG contrast (≥ 4.5 : 1). Free text always gets an
+  outline; a contrasting outline is also added when the target contrast cannot be met.
+- Performance: a typical region lays out in ≤ ~45 ms cold (the A13 target is < 50 ms),
+  thanks to the `shape_line` LRU cache and the word-metric cache keyed by a stable
+  identity.
+
+**D-033 — Morphology borders.** `cv2.erode` treats pixels outside the array as
+foreground by default. Tight bubble masks touch their crop edges at the four extremes,
+so padding erosion kept full-width spikes reaching the outline there (found on the L8
+specimen sheet). `geometry.erode()` uses a constant 0 border; it is now used for layout
+padding, the inpainting allowed zone and inscribed safe boxes. Regression tests cover
+both the layout and the inpainting cases.
+
+**D-034 — Page composition.** The clean image stores every detected text inpainted; this
+includes untranslated regions. At composition time, regions without Arabic text get their
+original pixels back inside their inpaint mask:
+- this covers untranslated, skipped and TYPESET_FAILED regions;
+- `--erase-untranslated` keeps them erased instead;
+- a GUI edit or `rerender` can therefore typeset a previously untranslated region without
+  re-inpainting;
+- typesetting errors are isolated per region (flag TYPESET_FAILED; the page continues).
+
 ## Waivers
 
 **W-001 (SP-B / P2 OCR JA via manga-ocr).** Reason: huggingface.co blocked. Risk: vertical

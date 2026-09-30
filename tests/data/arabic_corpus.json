@@ -1,0 +1,35 @@
+{
+  "_comment": "Canonical Arabic corpus for ARVS (T3). 'canonical' lists the 11 required strings; extend freely.",
+  "canonical": [
+    {"text": "مرحبا بالعالم", "checks": "basic joining"},
+    {"text": "لا تذهب!", "checks": "lam-alef isolated + punctuation"},
+    {"text": "هل أنت بخير؟", "checks": "hamza carriers, question mark"},
+    {"text": "الحمد لله", "checks": "alef-lam, repeated lam"},
+    {"text": "محمد", "checks": "dotless connectivity oracle"},
+    {"text": "بلا شك ولا تردد", "checks": "lam-alef final and isolated forms"},
+    {"text": "سأنتظرك عند الساعة 5 مساءً", "checks": "digits + tanween stripping"},
+    {"text": "اضغط على (OK) ثم انتظر 10 ثوانٍ", "checks": "Latin + parentheses + digits + tanween"},
+    {"text": "كلا، لا يمكنني ذلك ♡", "checks": "Arabic comma + symbol fallback"},
+    {"text": "يا للهول!! ماذا حدث؟!", "checks": "punctuation clusters"},
+    {"text": "لن أسامحك أبدًا على ما فعلته بي وبأصدقائي، وسأجعلك تدفع الثمن غاليًا مهما طال الزمن!", "checks": "long text: wrapping/fit"}
+  ],
+  "extra": [
+    "أحبك ♪",
+    "نجمة ☆ ساطعة ★",
+    "قلبي ♥ لك",
+    "الآن أو أبدًا",
+    "الإسلام والأمل",
+    "«اقتباس» جميل",
+    "العدد 12.5 و 3,000",
+    "OK هنا",
+    "5 تفاحات"
+  ],
+  "normalization": [
+    {"raw": "کتاب", "expected": "كتاب", "note": "U+06A9 keheh → kaf"},
+    {"raw": "علی", "expected": "علي", "note": "U+06CC farsi yeh → yeh"},
+    {"raw": "جمـــيل", "expected": "جميل", "note": "tatweel removed"},
+    {"raw": "‮مرحبا‬", "expected": "مرحبا", "note": "RLO/PDF stripped"},
+    {"raw": "‏نعم‎", "expected": "نعم", "note": "RLM/LRM stripped"},
+    {"raw": "⁧حسنا⁩", "expected": "حسنا", "note": "RLI/PDI stripped"}
+  ]
+}

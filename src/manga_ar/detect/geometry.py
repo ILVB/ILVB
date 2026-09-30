@@ -98,3 +98,17 @@ def ellipse_mask(shape: tuple[int, int], box: BBox) -> BoolArray:
 def disk(radius: int) -> npt.NDArray[np.uint8]:
     size = 2 * max(0, radius) + 1
     return np.asarray(cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (size, size)), dtype=np.uint8)
+
+
+def erode(mask: BoolArray, radius: int) -> BoolArray:
+    """Disk erosion treating everything outside the array as background.
+
+    OpenCV's default border counts outside pixels as foreground, so a mask touching its
+    crop edges (every tight bubble mask does, at its extremes) would keep full-width
+    spikes reaching the outline there."""
+    if radius <= 0:
+        return mask.copy()
+    out = cv2.erode(
+        mask.astype(np.uint8), disk(radius), borderType=cv2.BORDER_CONSTANT, borderValue=0
+    )
+    return np.asarray(out > 0, dtype=np.bool_)

@@ -45,6 +45,10 @@ See `docs/STATUS.md` (checklist + exact next step). Decisions/waivers: `docs/DEC
   presentation forms); runtime cmap check of emitted codepoints; never render tofu.
 - A5: symbol fallback (NotoSansSymbols2: ♡♥☆★, NotoSansSymbols: ♪♫).
 - A7/A8/A9: binary-search fit, balanced wrap, shape-aware spans; overflow ladder; never clip.
+- Morphology on crops: use `detect.geometry.erode` (constant-0 border), never bare
+  cv2.erode on tight masks (D-033).
+- Page composition: clean image has ALL text inpainted; untranslated/failed regions get
+  original pixels back at compose time unless erase_untranslated (typeset/page.py, D-034).
 
 ## Environment facts (docs/ENV_AUDIT.md)
 - Blocked egress: huggingface.co, translate.google.com, mymemory, Paddle hosts, fonts.google.

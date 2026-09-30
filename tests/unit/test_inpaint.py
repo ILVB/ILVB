@@ -249,3 +249,21 @@ def test_mask_helpers() -> None:
     region = Region(id="m", type=RegionType.BUBBLE, bbox=BBox(20, 20, 30, 30), text_mask=glyph)
     m = build_mask(bubble, region, CFG.inpaint)
     assert m is not None and m.window(BBox(24, 32, 25, 33))[0, 0]
+
+
+def test_allowed_zone_keeps_outline_at_mask_extremes() -> None:
+    from manga_ar.detect.geometry import ellipse_mask
+    from manga_ar.inpaint.mask import allowed_zone
+
+    cfg = load_config(environ={}).inpaint
+    box = BBox(10, 10, 110, 90)
+    region = Region(
+        id="z",
+        type=RegionType.BUBBLE,
+        bbox=box,
+        bubble_mask=CropMask(box, ellipse_mask((80, 100), BBox(0, 0, 100, 80))),
+    )
+    zone = allowed_zone(region, (120, 120), cfg, 2).data
+    e = cfg.allowed_erode
+    assert not zone[:e].any() and not zone[-e:].any()
+    assert not zone[:, :e].any() and not zone[:, -e:].any()

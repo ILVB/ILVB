@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 
 from manga_ar.config import InpaintConfig
-from manga_ar.detect.geometry import disk
+from manga_ar.detect.geometry import disk, erode
 from manga_ar.inpaint.base import BoolArray, RgbArray
 from manga_ar.schemas import BBox, CropMask, Flag, Region, RegionType
 
@@ -47,7 +47,7 @@ def allowed_zone(
         assert bm is not None
         data = bm.data
         if cfg.allowed_erode > 0:
-            data = cv2.erode(data.astype(np.uint8), disk(cfg.allowed_erode)) > 0
+            data = erode(data, cfg.allowed_erode)
         return CropMask(bm.bbox, np.asarray(data, dtype=np.bool_))
     # Free text / leaked bubble: the dilated text itself plus a halo margin.
     base = region.text_mask

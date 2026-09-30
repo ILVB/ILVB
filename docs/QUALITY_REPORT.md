@@ -17,11 +17,24 @@ Held-out synthetic pages: seeds 100–103 (29 pages, 140 ground-truth regions). 
 
 | preset | methods | px changed outside masks | regions with residual text | mean time / page |
 |---|---|---|---|---|
-| fast | {'solid': 124, 'ns': 8, 'telea': 8} | 0 | 0/140 (100.0% clean) | 53 ms |
-| balanced | {'solid': 124, 'ns': 8, 'lama': 8} | 0 | 0/140 (100.0% clean) | 257 ms |
-| quality | {'solid': 124, 'ns': 8, 'lama': 8} | 0 | 0/140 (100.0% clean) | 200 ms |
+| fast | {'solid': 124, 'ns': 8, 'telea': 8} | 0 | 0/140 (100.0% clean) | 54 ms |
+| balanced | {'solid': 124, 'ns': 8, 'lama': 8} | 0 | 0/140 (100.0% clean) | 244 ms |
+| quality | {'solid': 124, 'ns': 8, 'lama': 8} | 0 | 0/140 (100.0% clean) | 201 ms |
 
 Residual text is measured two ways: on bubble/caption interiors, any pixel deviating > 30 levels from a 15 px median-filtered background (catches single-pixel remnants); on free text, by re-running the classical detector on the cleaned crop. The latter shares the detector's blind spot: glyphs drawn straight onto dense 1-px hatching without a halo can be missed by detection *and* by this check. Visual inspection found such a surviving glyph on the no-halo hatching fixture (DECISIONS D-019); `detect.detector: hybrid` recovers these pages.
+
+## Typesetting (corpus strings cycled into detected regions)
+
+| metric | value | gate |
+|---|---|---|
+| regions typeset | 140 | — |
+| ink outside layout area (non-overflow regions) | 0 | 0 |
+| OVERFLOW_RISK (hard floor) | 0 (0.0%) | reported |
+| regions needing ladder steps | 1 (0.7%) | — |
+| mean font size / page height | 0.0258 | — |
+| mean time per region | 15.2 ms | < 50 ms (A13) |
+
+Texts are assigned regardless of bubble size (the 90-character sentence lands in small bubbles too), so OVERFLOW_RISK here is a stress figure, not a typical rate. ARVS L2–L7 results live in the test suite (DECISIONS D-030/D-031).
 
 ## Translation failover (mocked providers, fake clock)
 
@@ -36,7 +49,8 @@ Residual text is measured two ways: on bubble/caption interiors, any pixel devia
 
 | stage | mean / page | max |
 |---|---|---|
-| detect | 273 ms | 554 ms |
-| segment+order | 85 ms | 152 ms |
+| detect | 284 ms | 606 ms |
+| segment+order | 86 ms | 148 ms |
+| typeset | 74 ms | 149 ms |
 
-Peak resident memory of the benchmark process: 1126 MB.
+Peak resident memory of the benchmark process: 1115 MB.

@@ -25,6 +25,9 @@ from manga_ar.detect.geometry import (
     mask_polygon,
     solidity,
 )
+from manga_ar.detect.geometry import (
+    erode as erode_mask,
+)
 from manga_ar.logging_setup import get_logger
 from manga_ar.schemas import BBox, CropMask, Flag, Region, RegionType
 
@@ -55,7 +58,7 @@ def inscribed_safe_box(mask: BoolArray, offset: tuple[int, int], erode: int = 2)
     Runs on a ≤ 160 px downsampled copy for speed. The result is shrunk back into the
     full-resolution eroded mask, so it never exceeds the true interior.
     """
-    m = cv2.erode(mask.astype(np.uint8), disk(erode)) > 0 if erode > 0 else mask
+    m = erode_mask(mask, erode) if erode > 0 else mask
     if not m.any():
         return None
     h, w = m.shape
