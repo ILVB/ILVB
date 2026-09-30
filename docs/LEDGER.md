@@ -108,3 +108,47 @@ OK
 $ pytest tests/tools/test_ingest_gold.py → 3 passed
 $ python tools/ingest_gold.py --check → exit 1 (gold data not delivered yet)
 ```
+
+## Step 0.4 — environment snapshot — commits `09fccca`, `098673d`, `ec3f3d2`
+```
+$ python -m benchmarks.env
+Intel(R) Xeon(R) Processor @ 2.10GHz x4, 15.72 GB, gpu={'cuda': False, 'mps': False, 'devices': []}, 19 model/font files hashed
+git: {'commit': '098673d…', 'dirty': False}
+```
+- The first snapshot always read as dirty because its own file was untracked. The dirty
+  check now excludes `benchmarks/env.json`.
+
+## Step 0.2.3 — metric library + harness — commits `7dcaded` … `9968436`
+- Metrics are fixed in `docs/METRICS.md` before any Phase 1 work: CER/WER, P/R/F1 at
+  IoU 0.5, reading order, background integrity, crop SSIM/PSNR, residual text
+  (detector probe OR pixel check), ink outside safe, legibility floor, raggedness,
+  orphans, Arabic hyphen breaks, BLEU, chrF++, adapted METEOR, paired bootstrap and
+  bootstrap CIs. Unit tests use hand-computed values.
+- ADR numbering: the metrics package previously pointed at "ADR-0003"; definitions now
+  live in `docs/METRICS.md`, and ADR-0003 stays reserved for budgets (plan 0.6).
+- **Harness bug found and fixed (`206f9db`).** The first 3-page smoke run gave ja/ko
+  CER = 1.0 with every region `OCR_FAILED`. Cause: the v0.1.0 adapter loaded its config
+  with an empty environment, so it looked for models in the platformdirs cache and not
+  in `MANGAAR_CACHE_DIR`; EasyOCR and LaMa were "unavailable". After the fix the same
+  3 pages give ja CER 0.10, ko 0.105, zh 0.0. This was a harness defect, not v0.1.0
+  behaviour: v0.1.0 users set the cache through the environment.
+- English sources: v0.1.0 cannot declare them, so the adapter uses v0.1.0's own `auto`
+  path (per-page language detection, default ja). Its Latin pass-through leaves English
+  text unerased and untranslated; this is measured as-is.
+- Sanity checks on the dev baseline (full run, not frozen): every English page is
+  detected but left unerased (pass-through), which explains most flat-category residuals.
+  Low-contrast residuals are caught by the pixel check only (the probe misses them). One
+  screentone page was inspected visually: the erased/typeset images match the metrics.
+- Raw-output digest made reproducible (`828a274`): it excluded nothing before, so stage
+  timings made every re-run differ. Digests of the pre-freeze runs (same code, same
+  machine), recorded for the determinism check at the freeze:
+  dev `2d643020d6a9…cb230`, val `60026b35fb51…31b40`.
+- Pre-freeze baseline numbers (for orientation only; the frozen file is authoritative):
+
+  | split | CER | CER sfx | det F1 | order | SSIM | residual | inside safe | ≥ floor | ragged | orphan | BLEU |
+  |---|---|---|---|---|---|---|---|---|---|---|---|
+  | dev | 0.250 | 0.905 | 0.834 | 0.762 | 0.827 | 0.361 | 1.000 | 0.983 | 0.172 | 0.522 | 0.0 |
+  | val | 0.243 | 0.933 | 0.850 | 0.817 | 0.835 | 0.313 | 1.000 | 0.996 | 0.131 | 0.767 | 0.0 |
+
+  BLEU 0.0: offline v0.1.0 has no usable translation provider on this host (TM empty,
+  online providers disabled, Marian not downloadable; ADR-0001 #9).
