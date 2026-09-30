@@ -1,0 +1,96 @@
+"""Harness scoring and aggregation on hand-built pages (no models)."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+from PIL import Image
+
+from benchmarks import rle
+from benchmarks.evaluate import score_page
+from benchmarks.schema import GtPage, GtRegion, PageResult, PredRegion, TypesetReport
+
+H, W = 60, 80
+REF = "مرحبا بك في بيتنا الجميل"  # >= 4 tokens: corpus BLEU needs 4-grams
+
+
+def _mask(x0: int, y0: int, x1: int, y1: int) -> np.ndarray:
+    m = np.zeros((H, W), bool)
+    m[y0:y1, x0:x1] = True
+    return m
+
+
+def _region(rid: str, kind: str, box: tuple[int, int, int, int], text: str) -> GtRegion:
+    x0, y0, x1, y1 = box
+    return GtRegion(
+        region_id=rid, category="flat_white", type=kind, lang="ja", text=text,  # type: ignore[arg-type]
+        text_polygon=[(x0, y0), (x1, y0), (x1, y1), (x0, y1)], text_mask=rle.encode(_mask(*box)),
+        safe_mask=rle.encode(_mask(x0 - 5, y0 - 5, x1 + 5, y1 + 5)), reading_order=int(rid[-1]),
+        references_ar=[] if kind == "sfx" else [REF], reference_kind="silver",
+    )  # fmt: skip
+
+
+def _page() -> GtPage:
+    regions = [_region("p-r1", "dialogue", (10, 10, 30, 20), "こんにちは"),
+               _region("p-r2", "sfx", (50, 30, 70, 50), "ドン")]  # fmt: skip
+    return GtPage(page_id="p", series_id="s", split="dev", categories=["flat_white"], lang="ja",
+                  reading_direction="rtl", width=W, height=H, image="p.png", clean="p.clean.png",
+                  seed=1, generator="test", regions=regions)  # fmt: skip
+
+
+def _results(tmp: Path, original: np.ndarray, clean: np.ndarray) -> dict[str, PageResult]:
+    erased = clean.copy()
+    sfx = _mask(50, 30, 70, 50)
+    erased[sfx] = original[sfx]  # SFX is not erased (not declared either)
+    erased[0, 0] = 7  # one stray changed pixel outside the declared mask
+    Image.fromarray(erased).save(tmp / "p.erase.erased.png")
+    pred = PredRegion(region_id="x", polygon=[(10, 10), (30, 10), (30, 20), (10, 20)],
+                      text="こんにちわ", reading_order=0,
+                      erase_mask=rle.encode(_mask(8, 8, 32, 22)))  # fmt: skip
+    ink = rle.encode(_mask(12, 12, 28, 18))
+    return {
+        "erase": PageResult(page_id="p", version="t", mode="erase", regions=[pred],
+                            erased_image="p.erase.erased.png"),
+        "typeset_gt": PageResult(page_id="p", version="t", mode="typeset_gt", typeset=[
+            TypesetReport(region_id="p-r1", typeset=True, size_px=20.0, lines=["مرحبا بك"],
+                          line_boxes=[[12, 12, 28, 18]], ink_mask=ink)]),
+        "translate_gt": PageResult(page_id="p", version="t", mode="translate_gt",
+                                   translations={"p-r1": REF}),
+    }  # fmt: skip
+
+
+def _images() -> tuple[np.ndarray, np.ndarray]:
+    clean = np.full((H, W, 3), 255, np.uint8)
+    original = clean.copy()
+    original[_mask(10, 10, 30, 20) | _mask(50, 30, 70, 50)] = 0
+    return original, clean
+
+
+def _row(tmp: Path) -> tuple[GtPage, dict[str, Any]]:
+    original, clean = _images()
+    gt = _page()
+    return gt, score_page(gt, "flat_white", _results(tmp, original, clean), tmp, original, clean)
+
+
+def test_score_page(tmp_path: Path) -> None:
+    _gt, row = _row(tmp_path)
+    det = row["detection"]
+    assert (det["tp"], det["gt"], det["pred"]) == (1, 2, 1)
+    assert [(r["edits"], r["length"]) for r in det["ocr"]] == [(1, 5), (2, 2)]  # sfx unmatched
+    assert row["inpaint"]["changed_outside"] == 1
+    assert [r["region_id"] for r in row["inpaint"]["regions"]] == ["p-r1"]  # sfx excluded
+    assert row["typeset"][0]["ink_outside"] == 0 and row["typeset"][0]["above_floor"]
+    assert row["translation"] == [{"region_id": "p-r1", "hyp": REF}]
+
+
+def test_failed_modes_score_as_untouched_page(tmp_path: Path) -> None:
+    original, clean = _images()
+    failed = {m: PageResult(page_id="p", version="t", mode=m, errors=["Boom: x"])  # type: ignore[arg-type]
+              for m in ("erase", "typeset_gt", "translate_gt")}  # fmt: skip
+    row = score_page(_page(), "flat_white", failed, tmp_path, original, clean)
+    assert set(row["errors"]) == {"erase", "typeset_gt", "translate_gt"}
+    assert row["detection"]["tp"] == 0 and row["inpaint"]["regions"][0]["residual"]
+    assert row["typeset"] == [{"region_id": "p-r1", "typeset": False}]
+    assert row["translation"] == [{"region_id": "p-r1", "hyp": ""}]
