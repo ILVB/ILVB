@@ -226,3 +226,33 @@ $ pytest -q (fresh env from uv.lock, CI extras) → 378 passed
 - The audit now fails if any frozen artefact (baseline lock, manifest, frozen results,
   budgets) is touched by a second commit.
 - Phase 0 complete. `pytest -q`: 397 passed, 21 deselected; ruff and mypy clean.
+
+## Step 1.0.1 — TextRegion + legacy adapter + engine.profile — commit `17f2c1d`
+- `manga_ar.textregion.TextRegion` (pydantic), `manga_ar.textregion_legacy` (both
+  directions; TextRegion → Region → TextRegion is exact), config `engine.profile:
+  legacy | v2` (default legacy). pydantic became a core dependency (MIT, already locked).
+- Acceptance "legacy profile output byte-identical to v0.1.0 on the dev set":
+```
+$ python -m benchmarks.run_benchmark --version candidate --split dev --profile legacy-offline
+$ python -m benchmarks.compare_runs baseline candidate --split dev
+IDENTICAL          (120 outputs: 40 pages × erase/typeset_gt/translate_gt; code_origin src/ vs .baseline/)
+```
+
+## Step 1.0.2 — v0.1.0 OCR/detection per category (dev, frozen baseline rows) — commit `3f82ad4`
+| category | pages | CER | WER | P | R | F1 |
+|---|---|---|---|---|---|---|
+| G-OCR-1:standard_bubbles | 8 | 0.089 | 0.808 | 1.000 | 1.000 | 1.000 |
+| G-OCR-1:vertical_text | 4 | 0.042 | — | 1.000 | 1.000 | 1.000 |
+| G-OCR-1:low_contrast | 4 | 0.151 | 1.241 | 1.000 | 1.000 | 1.000 |
+| G-OCR-1:screentone | 4 | 0.364 | 0.906 | 0.537 | 0.957 | 0.688 |
+| G-OCR-1:stylized_fonts | 4 | 0.788 | 0.974 | 0.850 | 0.773 | 0.810 |
+| dark_bubble | 4 | 0.085 | 0.714 | 1.000 | 1.000 | 1.000 |
+| sfx (non-SFX regions) | 4 | 0.091 | 0.400 | 0.483 | 0.667 | 0.560 |
+| text_on_art | 4 | 0.569 | 0.900 | 0.324 | 0.522 | 0.400 |
+| tiny_text | 4 | 0.158 | 0.871 | 0.952 | 0.909 | 0.930 |
+- Overall dev: CER 0.250, WER 0.884, detection F1 0.834. The weakest categories are
+  stylized, text_on_art and screentone (false positives); these are the targets for
+  1.0.3–1.0.5. WER is high for en/ko because v0.1.0 OCR drops spaces (CER removes
+  whitespace; WER does not).
+- The G-OCR-1 category mapping was fixed in `docs/METRICS.md` at this step, before any
+  candidate OCR change.
