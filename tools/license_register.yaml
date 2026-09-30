@@ -1,0 +1,78 @@
+# Curated part of docs/LICENSES.md (G-LIC-1). Generated tables (Python packages, runtime
+# models, bundled fonts, benchmark fonts) come from scripts/license_report.py --register.
+# Every entry: licence, redistribution status, flag (none | weak-copyleft | copyleft |
+# non-commercial | proprietary | unverified) and where it is used.
+
+datasets:
+  - name: synthetic_v1 (benchmarks/generators)
+    license: MIT (this repository's code); rendered with OFL-1.1 fonts
+    redistribution: regenerable from code; images never committed, only the SHA-256 manifest
+    flag: none
+    use: benchmark dev/val/test splits
+  - name: text bank (benchmarks/data/text/phrases.yaml)
+    license: MIT (authored for this project)
+    redistribution: committed
+    flag: none
+    use: synthetic source texts (ja/zh/ko/en)
+  - name: SILVER Arabic references (benchmarks/data/text/refs_ar_silver.yaml)
+    license: MIT (authored for this project, ADR-0002)
+    redistribution: committed; labelled SILVER-REFERENCE, comparative only
+    flag: none
+    use: translation references for synthetic data
+  - name: gold_real (human-supplied pages and references)
+    license: per supplier (to be recorded on delivery)
+    redistribution: never committed (gitignored; only per-split hashes are committed)
+    flag: unverified
+    use: real-page evaluation, when delivered
+
+planned:
+  - name: NLLB-200 (distilled) weights via CTranslate2
+    license: CC-BY-NC-4.0
+    redistribution: not bundled; user download into the cache
+    flag: non-commercial
+    use: "Phase 1.1.4 provider, opt-in only; blocked on this host (huggingface.co)"
+  - name: ctranslate2
+    license: MIT
+    redistribution: PyPI dependency
+    flag: none
+    use: NLLB inference (Phase 1.1.4)
+  - name: llama-cpp-python
+    license: MIT
+    redistribution: PyPI dependency
+    flag: none
+    use: local LLM provider (Phase 1.1.5)
+  - name: GGUF instruction model
+    license: per model (Apache-2.0 models preferred; Llama-family community licences are not OSI)
+    redistribution: not bundled; user download into the cache
+    flag: unverified
+    use: "Phase 1.1.5; blocked on this host (huggingface.co); chosen model recorded here before use"
+  - name: sentence-transformers + multilingual MiniLM embedding model
+    license: Apache-2.0 (library and model)
+    redistribution: PyPI dependency; model downloaded into the cache
+    flag: none
+    use: "semantic memory (Phase 1.1.7); blocked on this host, deterministic local fallback"
+  - name: uharfbuzz (HarfBuzz)
+    license: Apache-2.0 (bindings), MIT (HarfBuzz)
+    redistribution: PyPI dependency
+    flag: none
+    use: primary Arabic shaping (Phase 1.2.2)
+  - name: pyphen (hyphenation dictionaries)
+    license: GPL-2.0+ / LGPL-2.1+ / MPL-1.1 (tri-licence; used under LGPL-2.1+ or MPL-1.1)
+    redistribution: PyPI dependency, used unmodified
+    flag: weak-copyleft
+    use: English hyphenation only, never Arabic (Phase 1.2.5)
+  - name: lpips + torchvision AlexNet/VGG backbone weights
+    license: BSD-2-Clause (lpips), BSD-3-Clause (torchvision); weights trained on ImageNet
+    redistribution: not bundled; user download into the cache
+    flag: unverified
+    use: "G-INP-2 LPIPS; blocked on this host (download.pytorch.org): NOT-MEASURABLE"
+  - name: Wild Words (Blambot) comic font
+    license: proprietary freeware; terms not verifiable from this host (blambot.com unreachable)
+    redistribution: never bundled or downloaded by MangaAR; optional user install, verified by hash
+    flag: proprietary
+    use: optional Latin comic lettering (Phase 1.2.1)
+  - name: Noto Kufi Arabic, Reem Kufi
+    license: OFL-1.1
+    redistribution: downloaded by script with pinned SHA-256; licence text shipped
+    flag: none
+    use: Arabic display fonts in the font registry (Phase 1.2.1)
