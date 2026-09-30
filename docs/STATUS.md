@@ -6,18 +6,19 @@ Ledger: `docs/LEDGER.md`. Plan: `docs/PLAN_PHASE1.md`. Phase map: `docs/PHASE_MA
 - [x] Phase 0: audit (0.1), baseline worktree + adapter (0.2.1–0.2.2), metrics + harness
   (0.2.3), frozen baseline for dev/val/test (0.2.4), synthetic_v1 dataset + sealed test
   (0.3), environment snapshot (0.4), governance (0.5), budgets (0.6, ADR-0003)
-- [ ] Phase 1: core engine → v0.2.0 (not started; waiting for the human decisions below)
+- [ ] Phase 1: core engine → v0.2.0, in progress. Done: 1.0.1 TextRegion + `engine.profile`,
+  1.0.2 per-category baseline, 1.0.3 v2 detector (db_primary, ADR-0004). Done in part:
+  1.1.3 defences (E-12/E-13), 1.1.6 Series Bible store (E-17), 1.2.4 size ceiling (E-09).
+  Edge matrix 18/18. The legacy profile reproduces v0.1.0 exactly on dev.
 - [ ] Gate 1 → human checkpoint (`PHASE 1 APPROVED`) — Phase 2 locked (PD-1)
 
-Open items for the human: blocked models (NLLB, GGUF, sentence-transformers; > 2 GB needs
-approval), LPIPS weights, the G-TR baseline definition, English target scope, remote
-`release/0.2.0`, CPU torch wheels, the trailer exception (10 commits), and two pip-audit
-findings without fixes (deep-translator PYSEC-2022-252, nltk PYSEC-2026-3740).
-Real gold data is also still pending.
+Human decisions: ADR-0007 (2026-09-30). Waiting on the human's host: running
+`scripts/download_heavy_weights.py` (W-HEAVY-1 waiver until then) and
+`python -m tools.freeze_online_baseline` (the v0.1.0_online_baseline for G-TR). Real gold
+data is still pending.
 
-Next step: Phase 1 step 1.0.1 (docs/PLAN_PHASE1.md) once the model questions are answered;
-steps that need no blocked model (1.0.x detection/OCR, 1.3.x inpainting, 1.2.x
-typesetting) can proceed first.
+Next step: 1.0.4 preprocessing and 1.0.5 recognizer selection (the remaining CER is
+recognition: stylized, text_on_art, tiny_text), then 1.1 providers and router.
 
 ## v0.1.0 phase checklist
 - [x] P0 Preflight, scaffold, spikes (gate passed; tag phase-0-complete)

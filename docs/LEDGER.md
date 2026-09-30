@@ -256,3 +256,44 @@ IDENTICAL          (120 outputs: 40 pages × erase/typeset_gt/translate_gt; code
   whitespace; WER does not).
 - The G-OCR-1 category mapping was fixed in `docs/METRICS.md` at this step, before any
   candidate OCR change.
+
+## Human decisions of 2026-09-30 — ADR-0007 (commit `99bd5e4`)
+Detector default, heavy-weight waiver, online translation baseline, scope (ja/ko/zh
+translation; English for Phase 2; Arabic target only), CUDA torch wheels, no remote
+`release/0.2.0` yet, trailer exceptions approved, pip-audit suppressions, E-09/E-13/E-17
+first. Each item and how it is carried out is in ADR-0007.
+
+## Step 1.0.3 — detector for v2 (ADR-0004) — commits `fd93493`, `24fd74a`, `61fca7d`
+- Dev: classical F1 0.834 / CER 0.250; hybrid 0.867 / 0.235; rapid 0.980 / 0.223 but
+  vertical CER 0.042 → 0.141; ctd (GPL, opt-in) 0.928 / 0.217. The first db_primary
+  rule regressed screentone (0.419) and vertical (0.058). A "vertical-only geometry" variant
+  regressed screentone (0.401). The adopted rule reaches F1 0.984 / CER 0.228, and no
+  G-OCR-1 category is worse than classical.
+- Val (the check that decides): v0.1.0 CER 0.243 / F1 0.850 → db_primary **0.192 / 0.992**,
+  and no category is worse (screentone −17.9 points, text_on_art −27.9, vertical ±0). The detect
+  stage runs 0.68/1.20 s p50/p95, within budget. `auto` resolves to db_primary under the v2
+  profile; legacy is unchanged.
+
+## ADR-0007 items 2–3 — commits `0dd7118`, `ee4752c`
+- `scripts/download_heavy_weights.py` + `benchmarks/heavy_weights.lock.json` (SHA-256
+  recorded on the first run on the human's host). `benchmarks/waivers.yaml` W-HEAVY-1 covers
+  G-TR-1..4 and the LPIPS clause, shown as WAIVED / PENDING-HOST-DOWNLOAD with no number,
+  never PASS.
+- The translation cache on this host holds 0 rows and translate.google.com is blocked, so no
+  cached online results exist. `tools/freeze_online_baseline.py` produces the immutable
+  `baseline_v0.1.0_online.json` on an online host (verified here: it refuses).
+
+## E-09, E-13, E-17 (moved ahead of the recommended order, ADR-0007 item 7) — commits `b1d625b`, `94353fc`, `e1e3b4a`
+- E-09: upgrade flag `typeset.source_size_cap` (`auto`: on for v2), ceiling 1.25 × the
+  original line height (1.2.4 part).
+- E-12/E-13: v2 prompt data block (escaped, bidi-cleaned, rules independent of the data), JSON
+  contract, output defences, draft injection suite of 8 items pending human verification
+  (1.1.3 part).
+- E-17: Series Bible store (1.1.6 part): per-series files, snapshots/rollback, corruption
+  quarantine and restore, single writer across processes.
+- `python -m tools.check_edge_matrix` → 18/18 IDs tested; OK. `pytest -q`: 445 passed.
+- CI run 5: pip-audit passes with the two suppressions; governance failed only on the
+  matrix (16/18 at that commit).
+- OP-10 re-check after these changes: `run_benchmark --version candidate --split dev
+  --profile legacy-offline --tag legacy-recheck` compared file by file against the frozen
+  v0.1.0 dev outputs → **IDENTICAL** (120 outputs).
