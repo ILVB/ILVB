@@ -60,3 +60,15 @@ class TextPools:
     def sfx(self, rng: np.random.Generator, lang: str) -> tuple[str, str]:
         words = self.sfx_words[lang]
         return words[int(rng.integers(0, len(words)))]
+
+
+@lru_cache(maxsize=1)
+def silver_refs() -> dict[str, dict[str, list[str]]]:
+    """Meaning id → {"all": [...], optional per-language overrides} (ADR-0002, SILVER)."""
+    data: dict[str, Any] = yaml.safe_load(
+        (TEXT_DIR / "refs_ar_silver.yaml").read_text(encoding="utf-8")
+    )
+    if data.get("kind") != "silver":
+        raise ValueError("refs_ar_silver.yaml must declare kind: silver")
+    refs: dict[str, dict[str, list[str]]] = data["refs"]
+    return refs

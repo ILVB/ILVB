@@ -72,3 +72,13 @@ def test_splits_disjoint_and_balanced() -> None:
     assert all(len(v) == 32 for v in sets.values())
     assert not (sets["dev"] & sets["val"]) and not (sets["val"] & sets["test"])
     assert not (sets["dev"] & sets["test"])
+
+
+def test_dialogue_regions_carry_silver_references(pools: TextPools) -> None:
+    from benchmarks.generators.texts import silver_refs
+
+    _img, _clean, gt = make_page("t-refs", "flat_white", "zh", "dev", 5, pools, silver_refs())
+    for r in gt["regions"]:
+        assert r["reference_kind"] == "silver" and r["references_ar"], r["region_id"]
+    refs = silver_refs()
+    assert refs["m41"]["zh"][0].startswith("شياو") and refs["m41"]["all"][0].startswith("هانا")
