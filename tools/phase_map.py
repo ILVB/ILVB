@@ -39,6 +39,8 @@ IMMUTABLE = (
     "benchmarks/manifests/synthetic_v1.test.sha256",
     "benchmarks/results/baseline_v0.1.0.json",
     "benchmarks/results/baseline_v0.1.0.json.sha256",
+    "benchmarks/results/baseline_v0.1.0_online.json",
+    "benchmarks/results/baseline_v0.1.0_online.json.sha256",
     "benchmarks/budgets.yaml",
 )
 

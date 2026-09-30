@@ -37,6 +37,7 @@ Each metric is computed by code in `benchmarks/metrics/` from raw result files
 | chrF++ | sacreBLEU `CHRF(word_order=2)`. |
 | METEOR (adapted) | NLTK METEOR (α=0.9, β=3, γ=0.5) on `\w+` tokens, matching exact forms and ISRI Arabic stems. The WordNet synonym stage is disabled (no Arabic WordNet), so scores are not comparable with English METEOR. |
 | Significance | sacreBLEU paired bootstrap resampling (`test_type="bs"`, 1000 samples, sacrebleu's fixed seed 12345 via `SACREBLEU_SEED`) for BLEU and chrF++, candidate vs baseline. |
+| Baseline and scope | G-TR compares against the `v0.1.0_online_baseline` (`benchmarks/results/baseline_v0.1.0_online.json`: v0.1.0 with its Google provider, produced once on an online host by `tools/freeze_online_baseline.py`), because offline v0.1.0 translates nothing on this host (BLEU 0). Only ja/ko/zh source segments count; English is a Phase 2 (Edu-Reader) source. Decided by the human, ADR-0007 items 3–4. |
 | Reference kind | Every report prints `SILVER-REFERENCE, comparative only` for synthetic references (ADR-0002). GOLD supersedes it when delivered. |
 
 ## Statistics and performance (`stats.py`)

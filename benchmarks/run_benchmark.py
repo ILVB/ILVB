@@ -34,6 +34,13 @@ PROFILES: dict[str, dict[str, Any]] = {
     "v010-offline": dict(_OFFLINE),  # the only profile v0.1.0 accepts (no engine section)
     "legacy-offline": {**_OFFLINE, "engine.profile": "legacy"},
     "v2-offline": {**_OFFLINE, "engine.profile": "v2"},
+    # v0.1.0 with its online Google provider and cache (the v0.1.0_online_baseline,
+    # ADR-0007 item 3); needs network, never used by default.
+    "v010-online": {
+        "runtime.offline": False,
+        "translate.providers": ["google"],
+        "translate.cache": True,
+    },
 }
 
 

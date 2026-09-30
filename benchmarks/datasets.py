@@ -1,8 +1,9 @@
 """Dataset access with a sealed test split (step 0.3.3).
 
 dev (tuning) and val (model selection) load freely. The test split loads only with a
-`SealedCapability`, issued for two purposes: the one-time baseline freeze
-(`tools/freeze_baseline.py`) and the gate (`tools/validate_phase1.py`). Every issue is
+`SealedCapability`, issued for three purposes: the one-time baseline freezes
+(`tools/freeze_baseline.py`, `tools/freeze_online_baseline.py`) and the gate
+(`tools/validate_phase1.py`). Every issue is
 appended to the committed access log `benchmarks/results/sealed_access.jsonl`. Content is
 verified against the committed manifest's SHA-256 values on every load.
 """
@@ -23,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_DIR = ROOT / "benchmarks" / "manifests"
 DATA_DIR = ROOT / "benchmarks" / "cache"
 SEALED_LOG = ROOT / "benchmarks" / "results" / "sealed_access.jsonl"
-SEALED_PURPOSES = frozenset({"freeze-baseline", "gate-phase1"})
+SEALED_PURPOSES = frozenset({"freeze-baseline", "freeze-online-baseline", "gate-phase1"})
 
 
 class SealedSplitError(PermissionError):
