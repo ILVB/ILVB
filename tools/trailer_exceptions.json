@@ -1,5 +1,5 @@
 {
- "_comment": "Commits whose Phase/Step lines were separated from the git trailer block by a blank line (history cannot be rewritten: no force-push). The audit verifies each body still carries exactly these values and warns on every run. Append-only; the commit-msg hook prevents new entries. See docs/LEDGER.md (step 0.5).",
+ "_comment": "Commits whose Phase/Step lines were separated from the git trailer block by a blank line (history cannot be rewritten: no force-push). The audit verifies each body still carries exactly these values and warns on every run. Append-only; the commit-msg hook prevents new entries. See docs/LEDGER.md (step 0.5). Approved by the human in writing on 2026-09-30 (ADR-0007, item 5).",
  "commits": [
   {
    "commit": "e3a6d43cdc16026000452ad93a8768dfb1afd83e",

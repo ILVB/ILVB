@@ -58,4 +58,13 @@ jobs:
       - name: Export the locked dependency set
         run: uv export --locked --all-extras --no-emit-project --no-hashes --format requirements-txt > requirements-audit.txt
       - name: pip-audit
-        run: uvx pip-audit --disable-pip --no-deps -r requirements-audit.txt
+        # Suppressed by the human's written decision of 2026-09-30 (ADR-0007, item 6):
+        #   PYSEC-2026-3740 / GHSA-8mgp-746c-j5xp (nltk): model save/load path APIs that
+        #     MangaAR never calls (only meteor_score and ISRIStemmer, [bench] extra).
+        #   PYSEC-2022-252 (deep-translator): 2022 account-takeover release; judged not
+        #     applicable to 1.11.4 as used here.
+        # Every other finding still fails the job.
+        run: >-
+          uvx pip-audit --disable-pip --no-deps -r requirements-audit.txt
+          --ignore-vuln PYSEC-2026-3740 --ignore-vuln GHSA-8mgp-746c-j5xp
+          --ignore-vuln PYSEC-2022-252
