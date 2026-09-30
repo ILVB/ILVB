@@ -23,13 +23,13 @@ dist/
 *.safetensors
 *.bin
 *.argosmodel
-models/
+/models/
 
 # Outputs and artifacts
-out/
-output/
-outputs/
-artifacts/
+/out/
+/output/
+/outputs/
+/artifacts/
 spikes/out/
 *.mangaar.json
 report.json
