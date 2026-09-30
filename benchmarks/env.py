@@ -79,7 +79,9 @@ def _git() -> dict[str, Any]:
         out = subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, check=False)
         return out.stdout.strip()
 
-    return {"commit": run("rev-parse", "HEAD"), "dirty": bool(run("status", "--porcelain"))}
+    # The snapshot file itself is excluded: writing it would otherwise always read as dirty.
+    status = run("status", "--porcelain", "--", ".", ":(exclude)benchmarks/env.json")
+    return {"commit": run("rev-parse", "HEAD"), "dirty": bool(status)}
 
 
 def _hash_files(paths: list[Path], memo_path: Path) -> dict[str, str]:
