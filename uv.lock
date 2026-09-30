@@ -1187,6 +1187,7 @@ source = { editable = "." }
 dependencies = [
     { name = "arabic-reshaper" },
     { name = "deep-translator" },
+    { name = "filelock" },
     { name = "fonttools", version = "4.65.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "fonttools", version = "4.66.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "huggingface-hub" },
@@ -1281,6 +1282,7 @@ requires-dist = [
     { name = "arabic-reshaper", specifier = ">=3.0,<4" },
     { name = "deep-translator", specifier = ">=1.11,<2" },
     { name = "easyocr", marker = "extra == 'ocr'", specifier = ">=1.7,<2" },
+    { name = "filelock", specifier = ">=3.12,<5" },
     { name = "fonttools", specifier = ">=4.47,<5" },
     { name = "gradio", marker = "extra == 'gui'", specifier = ">=6,<7" },
     { name = "gradio-client", marker = "extra == 'gui'", specifier = ">=2,<3" },
