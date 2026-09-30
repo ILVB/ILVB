@@ -55,7 +55,13 @@ ctd = ["onnxruntime>=1.17,<2"]
 gpu = ["onnxruntime-gpu>=1.17,<2"]
 gui = ["gradio>=6,<7", "gradio_client>=2,<3"]
 # Benchmark harness and quality gates (v0.2.0 Phase 0/1).
-bench = ["pydantic>=2.6,<3"]
+bench = [
+  "pydantic>=2.6,<3",
+  "jiwer>=3.0,<5",
+  "sacrebleu>=2.4,<3",
+  "scikit-image>=0.22,<1",
+  "nltk>=3.8,<4",  # METEOR only (allowed in [bench] in Phase 1)
+]
 all = [
   "manga-arabic-translator[rapid,ocr,lama,offline-mt,gui]",
 ]
