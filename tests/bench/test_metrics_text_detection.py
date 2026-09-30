@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from benchmarks.metrics.detection import DetectionCounts, box_of, iou, match
+from benchmarks.metrics.detection import DetectionCounts, box_of, iou, match, order_hits
 from benchmarks.metrics.text import EditCounts, char_edits, normalize, word_edits
 
 
@@ -38,3 +38,9 @@ def test_iou_and_matching() -> None:
     counts = DetectionCounts(len(pairs), len(gt), len(pred))
     assert counts.precision == pytest.approx(1 / 3) and counts.recall == pytest.approx(1 / 2)
     assert counts.f1 == pytest.approx(0.4)
+
+
+def test_order_hits_uses_ranks_among_matched() -> None:
+    assert order_hits([(0, 5), (1, 7), (2, 9)]) == (3, 3)  # gaps in predicted order are fine
+    assert order_hits([(0, 1), (1, 0), (2, 2)]) == (1, 3)  # first two swapped
+    assert order_hits([]) == (0, 0)

@@ -70,3 +70,14 @@ class DetectionCounts:
     def f1(self) -> float:
         p, r = self.precision, self.recall
         return 2 * p * r / (p + r) if p + r else 0.0
+
+
+def order_hits(pairs: Sequence[tuple[int, int]]) -> tuple[int, int]:
+    """Reading order over matched regions: (GT order, predicted order) pairs → (hits, total).
+
+    Both sides are converted to ranks among the matched regions, so unmatched regions do not
+    shift the comparison; a hit is a region whose predicted rank equals its GT rank.
+    """
+    by_gt = sorted(range(len(pairs)), key=lambda i: pairs[i][0])
+    by_pred = sorted(range(len(pairs)), key=lambda i: (pairs[i][1], pairs[i][0]))
+    return sum(1 for a, b in zip(by_gt, by_pred, strict=True) if a == b), len(pairs)

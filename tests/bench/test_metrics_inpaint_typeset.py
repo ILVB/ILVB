@@ -26,6 +26,16 @@ def test_changed_outside_respects_two_px_ring() -> None:
     assert inpaint.changed_outside(orig, orig, declared) == 0
 
 
+def test_overreach() -> None:
+    gt = np.zeros((20, 20), bool)
+    gt[10, 10] = True
+    declared = np.zeros_like(gt)
+    declared[10, 4:17] = True  # columns 4 and 16 lie 6 px away (allowed); 13 px wide
+    assert inpaint.overreach(declared, gt) == 0
+    declared[10, 3] = declared[0, 0] = True
+    assert inpaint.overreach(declared, gt) == 2
+
+
 def test_crop_box_clips_margin() -> None:
     m = np.zeros((20, 30), bool)
     m[2:5, 25:28] = True

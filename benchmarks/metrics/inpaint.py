@@ -28,6 +28,11 @@ def changed_outside(original: U8, erased: U8, declared: Bool, ring_px: int = 2) 
     return int((diff & ~allowed).sum())
 
 
+def overreach(declared: Bool, gt_text: Bool, radius: int = 6) -> int:
+    """Diagnostic: declared erase-mask pixels farther than ``radius`` from GT lettering."""
+    return int((declared & ~_dilate(gt_text, radius)).sum())
+
+
 def crop_box(mask: Bool, margin: int) -> Box:
     ys, xs = np.nonzero(mask)
     h, w = mask.shape

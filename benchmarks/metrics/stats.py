@@ -6,8 +6,6 @@ from collections.abc import Callable, Sequence
 
 import numpy as np
 
-T = float
-
 
 def bootstrap_ci(
     items: Sequence[object], statistic: Callable[[Sequence[object]], float],
