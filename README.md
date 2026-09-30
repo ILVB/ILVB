@@ -18,6 +18,12 @@ tool (`manga-arabic`) with a local web GUI.
 > Translate only material you have the right to translate. See
 > [Responsible use](#responsible-use).
 
+| Input (synthetic demo page) | Output of `manga-arabic demo` |
+|---|---|
+| ![demo input](docs/images/demo_input.png) | ![demo output](docs/images/demo_output.png) |
+
+![GUI: Review & Edit](docs/images/gui_review_edit.png)
+
 ## Contents
 [Install](#install) · [Quick start](#quick-start) · [CLI](#command-line) ·
 [GUI](#gui) · [Presets](#presets) · [Translation & offline use](#translation) ·

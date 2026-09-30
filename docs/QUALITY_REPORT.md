@@ -13,13 +13,24 @@ Held-out synthetic pages: seeds 100–103 (29 pages, 140 ground-truth regions). 
 | region type accuracy | 1.000 (140/140) | — |
 | reading order exact | 1.000 (29/29 pages) | ≥ 0.95 |
 
+## OCR (character error rate)
+
+| language | orientation | regions | CER | gate |
+|---|---|---|---|---|
+| ja | horizontal | 26 | 0.000 | ≤ 0.10 |
+| ja | vertical | 36 | 0.028 | ≤ 0.10 |
+| ko | horizontal | 36 | 0.068 | ≤ 0.10 |
+| zh | horizontal | 31 | 0.000 | ≤ 0.10 |
+
+Engines used: easyocr=98, rapid=31
+
 ## Inpainting
 
 | preset | methods | px changed outside masks | regions with residual text | mean time / page |
 |---|---|---|---|---|
-| fast | {'solid': 124, 'ns': 8, 'telea': 8} | 0 | 0/140 (100.0% clean) | 54 ms |
-| balanced | {'solid': 124, 'ns': 8, 'lama': 8} | 0 | 0/140 (100.0% clean) | 244 ms |
-| quality | {'solid': 124, 'ns': 8, 'lama': 8} | 0 | 0/140 (100.0% clean) | 201 ms |
+| fast | {'solid': 124, 'ns': 8, 'telea': 8} | 0 | 0/140 (100.0% clean) | 53 ms |
+| balanced | {'solid': 124, 'ns': 8, 'lama': 8} | 0 | 0/140 (100.0% clean) | 245 ms |
+| quality | {'solid': 124, 'ns': 8, 'lama': 8} | 0 | 0/140 (100.0% clean) | 220 ms |
 
 Residual text is measured two ways: on bubble/caption interiors, any pixel deviating > 30 levels from a 15 px median-filtered background (catches single-pixel remnants); on free text, by re-running the classical detector on the cleaned crop. The latter shares the detector's blind spot: glyphs drawn straight onto dense 1-px hatching without a halo can be missed by detection *and* by this check. Visual inspection found such a surviving glyph on the no-halo hatching fixture (DECISIONS D-019); `detect.detector: hybrid` recovers these pages.
 
@@ -49,8 +60,9 @@ Texts are assigned regardless of bubble size (the 90-character sentence lands in
 
 | stage | mean / page | max |
 |---|---|---|
-| detect | 284 ms | 606 ms |
-| segment+order | 86 ms | 148 ms |
-| typeset | 74 ms | 149 ms |
+| detect | 95 ms | 231 ms |
+| segment+order | 85 ms | 160 ms |
+| ocr | 279 ms | 3915 ms |
+| typeset | 74 ms | 151 ms |
 
-Peak resident memory of the benchmark process: 1115 MB.
+Peak resident memory of the benchmark process: 1352 MB.

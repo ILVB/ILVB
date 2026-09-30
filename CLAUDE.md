@@ -58,6 +58,14 @@ See `docs/STATUS.md` (checklist + exact next step). Decisions/waivers: `docs/DEC
   analytics off before `import gradio`; bind 127.0.0.1.
 - Slow real-stage tests: `.venv/bin/python -m pytest -m slow` (RapidOCR + TM, offline).
 
+## Release hygiene
+- `.gitignore` patterns for outputs/models are root-anchored (`/models/`); the test
+  `tests/unit/test_repo_hygiene.py` fails if a source file is ignored or a weight is tracked.
+- Regenerate docs/THIRD_PARTY_LICENSES.md with `scripts/license_report.py`, and
+  docs/QUALITY_REPORT.md with `scripts/benchmark.py`.
+- Clean-install check: `scripts/clean_install_test.sh` (fresh clone → doctor → demo).
+- Deep fuzz: `MANGAAR_FUZZ_EXAMPLES=3000 pytest tests/unit/test_fuzz.py`.
+
 ## Environment facts (docs/ENV_AUDIT.md)
 - Blocked egress: huggingface.co, translate.google.com, mymemory, Paddle hosts, fonts.google.
 - Reachable: PyPI, GitHub releases + raw. Usable models: EasyOCR, RapidOCR (bundled),

@@ -8,7 +8,7 @@
 - [x] P4 Translation (gate passed with waivers W-003/W-004; tag phase-4-complete)
 - [x] P5 Arabic typesetting + ARVS (gate passed; tag phase-5-complete)
 - [x] P6 Pipeline, CLI, GUI (gate passed with waiver W-004; tag phase-6-complete)
-- [ ] P7 Hardening, packaging, release
+- [x] P7 Hardening, packaging, release (gate passed; tag v0.1.0)
 
 ## Phase 5 summary
 - ARVS: L1 (fonts/coverage), L2 shaping oracle, L3 bidi, L4 codepoint coverage + symbol
@@ -32,13 +32,36 @@
   exit 2 + resume + rerender, offline/E4, demo, missing input). Default suite 288 tests
   in ~45 s; overall coverage 87 %.
 
+## Phase 7 summary
+- Fuzzing: loader, archive, normalize_ar, shaping/bidi, sidecar. The deep run used 3,000
+  examples per property and found one bug (a Pillow TypeError on a corrupt TIFF), now
+  fixed.
+- Soak: 50 pages with real stages; RSS grew 5 MB after warm-up; 0.85 s/page (fast
+  preset, before the performance pass).
+- Profiling:
+  - detector windowing gives identical output at 2.4× speed;
+  - end to end: 0.9 → 0.47 s/page.
+- Docs: README (responsible use), USER_GUIDE, ARCHITECTURE, TROUBLESHOOTING (E1–E21 →
+  tests), THIRD_PARTY_LICENSES (script-generated), CHANGELOG.
+- Packaging: GUI launchers; clean-install test (sh/ps1), which passed: fresh clone →
+  doctor → demo 3/3.
+- Release blocker found and fixed: `.gitignore` had excluded `src/manga_ar/models/`; a
+  repo-hygiene test now guards it.
+- Locale: suite green with PYTHONUTF8=1 and under LANG=C, UTF-8 mode off.
+- Licence flag: PyPI torch pulls proprietary NVIDIA libraries on Linux (D-043); this is
+  a decision for the user.
+- Final numbers: default suite 296 passed in about 30 s (48 s with coverage); coverage
+  88 % overall, typeset/ 93 %, resilience 97 %.
+
 ## Known issues
 - Glyphs drawn directly on dense hatching without a halo may be missed (D-019).
 - Network policy blocks HF/Google/MyMemory/Paddle hosts (waivers W-001..W-004).
 - ♪ from Noto Sans Symbols renders visibly smaller than Arabic text (font metrics).
 - `rerender` does not re-embed the source ICC profile (it is not stored in the sidecar).
+- No PyInstaller spec (optional; D-045).
 
 ## Exact next step
-Phase 7: fuzzing + 50-page soak, profiling, docs (README with responsible use,
-ARCHITECTURE, USER_GUIDE, TROUBLESHOOTING, THIRD_PARTY_LICENSES), launchers, CHANGELOG,
-clean-install test, full QUALITY_REPORT (with OCR), non-UTF-8 locale run, v0.1.0.
+Released v0.1.0. Suggested next steps are listed in the Final Delivery Report:
+- verify W-001..W-004 on an unrestricted host;
+- decide on CPU-only torch in the lock (D-043);
+- stretch items.

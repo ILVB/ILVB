@@ -27,6 +27,15 @@ from manga_ar.ui.handlers import COLUMNS, EDITABLE, GuiController, GuiSettings
 
 log = get_logger(__name__)
 PROVIDERS = ["tm", "google", "mymemory", "libretranslate", "local"]
+# Each cell/field takes its direction from its own text, so Arabic reads right-to-left
+# (with ؟ ! … at the left end) while ids and CJK/Latin stay left-to-right.
+CSS = """
+#region-table td, #region-table input, #region-table textarea,
+#region-table [role="gridcell"], #region-table span {
+  unicode-bidi: plaintext;
+  font-family: "Noto Naskh Arabic", "Noto Sans Arabic", system-ui, sans-serif;
+}
+"""
 
 
 def _settings(*values: Any) -> GuiSettings:
@@ -100,6 +109,7 @@ def build_app(controller: GuiController) -> gr.Blocks:
                 interactive=True,
                 static_columns=[i for i in range(len(COLUMNS)) if i not in EDITABLE],
                 wrap=True,
+                elem_id="region-table",
             )
             with gr.Row():
                 rerender_btn = gr.Button("Re-render page", variant="primary")
@@ -287,6 +297,7 @@ def launch(
         prevent_thread_lock=not block,
         allowed_paths=[str(controller.workspace)],
         footer_links=[],
+        css=CSS,
         quiet=not block,
     )
     return app, controller

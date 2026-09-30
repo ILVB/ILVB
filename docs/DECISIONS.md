@@ -506,6 +506,23 @@ detection taking about 60 % of page time, most of it full-page dilations per tex
   properties. It found one bug: Pillow raised TypeError on a corrupt TIFF IFD. Every
   decoder exception now becomes `ImageLoadError`.
 
+**D-045 — No PyInstaller spec in v0.1.0 (optional item not delivered).**
+A frozen one-folder bundle would have to carry Gradio (frontend assets and dynamic
+imports) and, for most users, torch, which is several GB. It could only be declared
+working after building and running it on each target OS. This host cannot do that for
+Windows or macOS, and an untested spec would be a fake deliverable.
+
+Distribution is instead the locked `uv sync` / `pip install`, the launchers in
+`packaging/`, and `scripts/clean_install_test.sh` / `.ps1`, which verify a fresh install
+end to end. Models are always downloaded on first run and never bundled.
+
+**D-046 — Locale safety.** File names are shown through `display_name()`, which
+re-decodes surrogate-escaped names as UTF-8. Report and sidecar writers never fail on a
+stray surrogate. The suite runs green with `PYTHONUTF8=1` and under `LANG=C`,
+`PYTHONUTF8=0`, `PYTHONCOERCECLOCALE=0`. The only skip there is a test whose setup (an
+Arabic directory name) the OS cannot create in that locale; a bytes-path test covers the
+same behaviour instead.
+
 ## Waivers
 
 **W-001 (SP-B / P2 OCR JA via manga-ocr).** Reason: huggingface.co blocked. Risk: vertical
