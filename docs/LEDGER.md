@@ -297,3 +297,19 @@ first. Each item and how it is carried out is in ADR-0007.
 - OP-10 re-check after these changes: `run_benchmark --version candidate --split dev
   --profile legacy-offline --tag legacy-recheck` compared file by file against the frozen
   v0.1.0 dev outputs → **IDENTICAL** (120 outputs).
+
+## Steps 1.0.4–1.0.5 — English route, DB geometry, screentone suppression — commits `35ce247`, `156cb32`
+- English/Latin route: `en` source, engines rapid → easyocr (`english_g2`, 15 MB from GitHub
+  releases, MD5-checked by easyocr, Apache-2.0), lines joined with spaces, no Latin
+  pass-through for English sources. Rapid-first beat EasyOCR-first on dev (English CER
+  0.149 vs 0.215).
+- `detect.db_geometry` (v2): DB line boxes decide orientation and lines. On dev this fixed
+  11/229 horizontal regions misread as vertical, and spurious "lines" made of screentone
+  dots. `ocr.clean_texture` (v2): screentone suppression on OCR crops only.
+- Dev: 0.228 → 0.182 (English) → 0.159 (orientation) → 0.158 (texture) → **0.118** (DB lines);
+  ablation with texture suppression off: 0.120 (screentone 0.097 vs 0.083), so it is kept.
+- **Val, frozen v0.1.0 → v2: CER 0.243 → 0.118 (−51 % relative), WER 0.821 → 0.274**,
+  detection F1 0.992. Every G-OCR-1 category is at or below v0.1.0 (vertical 0.047 = 0.047).
+  English and tiny_text moved slightly against the previous step and are noted in ADR-0004.
+- OP-10: the legacy profile is still IDENTICAL to the frozen v0.1.0 dev outputs after these
+  changes (`legacy-recheck2`).
