@@ -75,8 +75,7 @@ class TypesetReport(_Strict):
     font: str = ""
     size_px: float = 0.0
     lines: list[str] = Field(default_factory=list)
-    line_widths: list[float] = Field(default_factory=list)
-    available_widths: list[float] = Field(default_factory=list)
+    line_boxes: list[list[float]] = Field(default_factory=list)  # per-line ink [x0, y0, x1, y1]
     ink_mask: Rle | None = None
     overflow: bool = False
     needs_review: bool = False
